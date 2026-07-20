@@ -107,8 +107,8 @@ input[type=range].complexity-range{width:100%;accent-color:var(--teal,#2dd4a0);m
 .btn-install:hover{opacity:0.85;}
 .btn-download{background:var(--bg3);color:var(--text);border:0.5px solid var(--border);}
 .btn-download:hover{border-color:var(--border-hi);}
-.btn-rework{background:rgba(224,96,144,0.1);color:var(--pink,#e06090);border:0.5px solid rgba(224,96,144,0.3);}
-.btn-rework:hover{background:var(--pink,#e06090);color:#fff;}
+.btn-rework{background:rgba(178,58,91,0.1);color:var(--pink,#b23a5b);border:0.5px solid rgba(178,58,91,0.3);}
+.btn-rework:hover{background:var(--pink,#b23a5b);color:#fff;}
 .rework-hint{font-size:11px;color:var(--muted);width:100%;text-align:center;padding-top:4px;}
 /* progress states */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -361,7 +361,7 @@ function refreshExamplePills() {
   const pills = document.getElementById('example-pills')
   const examples = (activeGame && EXAMPLES_BY_GAME[activeGame.name]) || EXAMPLES_BY_GAME.default
   pills.innerHTML = examples.map((e,i) => {
-    const colors = ['var(--teal,#2dd4a0)','var(--purple,#8b7cef)','var(--amber,#f5a623)','var(--coral,#f07050)','var(--pink,#e06090)']
+    const colors = ['var(--teal,#2dd4a0)','var(--purple,#8b7cef)','var(--amber,#f5a623)','var(--coral,#f07050)','var(--pink,#b23a5b)']
     const c = colors[i % colors.length]
     return `<div class="pill" onclick="usePill(this.textContent)" style="color:${c};border-color:${c}40;">${e}</div>`
   }).join('')
@@ -400,9 +400,9 @@ const TEMPLATES = [
   {id:'fly-survival', cat:'game',     name:'Fly in Survival',   desc:'Enable creative flight in survival mode. (Minecraft)',     color:'var(--coral,#f07050)',  fields:[]},
   {id:'auto-water',   cat:'game',     name:'Auto-Water',        desc:'Crops water themselves every morning. (Stardew Valley)',   color:'var(--coral,#f07050)',  fields:[{label:'Radius',value:5,unit:'tiles'}]},
   // Stealth — pink
-  {id:'no-fall',      cat:'stealth',  name:'No Fall Damage',    desc:'Disable all fall damage.',                                 color:'var(--pink,#e06090)',   fields:[]},
-  {id:'silent-feet',  cat:'stealth',  name:'Silent Movement',   desc:'Enemies cannot hear player movement.',                     color:'var(--pink,#e06090)',   fields:[{label:'Noise radius',value:0,unit:'m'}]},
-  {id:'invis',        cat:'stealth',  name:'Invisibility',      desc:'Make the player invisible to enemies.',                    color:'var(--pink,#e06090)',   fields:[{label:'Duration',value:60,unit:'s'}]},
+  {id:'no-fall',      cat:'stealth',  name:'No Fall Damage',    desc:'Disable all fall damage.',                                 color:'var(--pink,#b23a5b)',   fields:[]},
+  {id:'silent-feet',  cat:'stealth',  name:'Silent Movement',   desc:'Enemies cannot hear player movement.',                     color:'var(--pink,#b23a5b)',   fields:[{label:'Noise radius',value:0,unit:'m'}]},
+  {id:'invis',        cat:'stealth',  name:'Invisibility',      desc:'Make the player invisible to enemies.',                    color:'var(--pink,#b23a5b)',   fields:[{label:'Duration',value:60,unit:'s'}]},
 ]
 
 const CATS = [
@@ -411,7 +411,7 @@ const CATS = [
   {id:'economy',  label:'Economy',      color:'var(--amber,#f5a623)'},
   {id:'visual',   label:'Visual',       color:'var(--purple,#8b7cef)'},
   {id:'game',     label:'Game-specific',color:'var(--coral,#f07050)'},
-  {id:'stealth',  label:'Stealth',      color:'var(--pink,#e06090)'},
+  {id:'stealth',  label:'Stealth',      color:'var(--pink,#b23a5b)'},
 ]
 
 let activeCat = 'all'

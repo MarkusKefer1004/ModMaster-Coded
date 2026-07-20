@@ -28,7 +28,7 @@
 
   // ── Accent colors ──────────────────────────────────────────────────────────
   const ACCENTS = {
-    default: { '--teal':'#2dd4a0','--purple':'#8b7cef','--coral':'#f07050','--pink':'#e06090','--amber':'#f5a623','--green':'#4ade80' },
+    default: { '--teal':'#2dd4a0','--purple':'#8b7cef','--coral':'#f07050','--pink':'#b23a5b','--amber':'#f5a623','--green':'#4ade80' },
     blue:    { '--teal':'#60a0f0','--purple':'#9070f0','--coral':'#50b0ff','--pink':'#70c0ff','--amber':'#f5a623','--green':'#4ade80' },
     green:   { '--teal':'#4ade80','--purple':'#2dd4a0','--coral':'#80e060','--pink':'#60d090','--amber':'#a0e030','--green':'#80ff60' },
     red:     { '--teal':'#f07050','--purple':'#e04060','--coral':'#ff6040','--pink':'#f05080','--amber':'#ff8020','--green':'#4ade80' },
