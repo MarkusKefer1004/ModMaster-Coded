@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModMaster — Update Mods</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
+#titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
+#titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--purple,#8b7cef));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-controls{display:flex;-webkit-app-region:no-drag;}
+.tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+#tb-close:hover{background:#c42b2b;color:#fff;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+.pulsing{animation:pulse 1.4s ease infinite;}
+/* nav */
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.game-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:4px 12px 4px 8px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color 0.2s;}
+.game-badge:hover{border-color:var(--border-hi);}
+.game-dot{width:7px;height:7px;border-radius:50%;}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--purple,#8b7cef));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+.panel{display:none;max-width:660px;}
+.panel.active{display:block;}
+/* game pick */
+.pick-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
+/* scanning */
+.scan-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2rem;text-align:center;}
+.scan-icon{font-size:2rem;margin-bottom:0.75rem;}
+.scan-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;}
+.scan-sub{font-size:12px;color:var(--muted);margin-bottom:1rem;}
+.progress-track{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:0.75rem 0 6px;}
+.progress-fill{height:100%;border-radius:99px;transition:width 0.4s ease;width:0%;}
+.progress-txt{font-size:11px;color:var(--muted);}
+/* summary bar */
+.summary-bar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.summary-chip{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;}
+/* mod list */
+.mod-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem;}
+.mod-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.2s;}
+.mod-row-main{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;}
+.mod-row-main:hover{background:var(--bg3);}
+.mod-checkbox{width:18px;height:18px;border-radius:5px;border:0.5px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s;}
+.mod-checkbox.checked{background:var(--purple,#8b7cef);border-color:var(--purple,#8b7cef);}
+.mod-checkbox.checked::after{content:'✓';font-size:11px;color:#fff;}
+.mod-name{font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);flex:1;}
+.mod-file{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.mod-status-badge{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:3px 9px;border-radius:99px;flex-shrink:0;}
+/* result detail */
+.mod-detail{padding:12px 14px;border-top:0.5px solid var(--border);background:var(--bg);display:none;}
+.mod-detail.open{display:block;}
+.hint-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.hint-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+.hint-text{font-size:12px;color:var(--muted);line-height:1.55;flex:1;}
+.repair-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;}
+.repair-btn-fix{background:rgba(139,124,239,0.12);color:var(--purple,#8b7cef);border:0.5px solid rgba(139,124,239,0.3);}
+.repair-btn-fix:hover{background:var(--purple,#8b7cef);color:#fff;}
+.repair-btn-rework{background:rgba(224,96,144,0.1);color:var(--pink,#e06090);border:0.5px solid rgba(224,96,144,0.25);}
+.repair-btn-rework:hover{background:var(--pink,#e06090);color:#fff;}
+/* overall progress panel */
+.overall-progress{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;}
+.overall-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.current-action{font-size:12px;color:var(--purple,#8b7cef);margin-top:8px;min-height:18px;transition:opacity 0.3s;}
+/* fix all button */
+.fix-btn{width:100%;padding:13px;border-radius:11px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--purple,#8b7cef);color:#fff;}
+.fix-btn:hover{opacity:0.88;}
+.fix-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.select-all-btn{background:none;border:0.5px solid var(--border);border-radius:8px;padding:5px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.select-all-btn:hover{border-color:var(--border-hi);color:var(--text);}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
+  <div id="titlebar-controls">
+    <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="mm-main-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;" class="fade-in">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div id="game-badge-wrap"></div>
+  </div>
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Update Mods</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Select a game to scan for broken or outdated mods.</div>
+
+  <!-- Step 1: Pick game -->
+  <div id="step-game" class="panel active">
+    <div class="pick-card">
+      <div style="font-size:2.5rem;margin-bottom:1rem;">🔄</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">Which game?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.6;">ModMaster will scan all installed mods and find any that are broken or outdated.</div>
+      <button onclick="openGamePicker()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--purple,#8b7cef);color:#fff;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">🎮 Choose a game</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Scanning -->
+  <div id="step-scanning" class="panel">
+    <div class="scan-card">
+      <div class="scan-icon pulsing">🔍</div>
+      <div class="scan-title">Scanning mods...</div>
+      <div class="scan-sub" id="scan-sub">Looking for installed mods</div>
+      <div class="progress-track"><div class="progress-fill" id="scan-bar" style="background:var(--purple,#8b7cef);"></div></div>
+      <div class="progress-txt" id="scan-pct">0%</div>
+    </div>
+  </div>
+
+  <!-- Step 3: Mod list -->
+  <div id="step-list" class="panel">
+    <div class="summary-bar" id="summary-bar"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;" id="list-count">Mods found</div>
+      <button class="select-all-btn" onclick="toggleSelectAll()" id="select-all-btn">Select all broken</button>
+    </div>
+    <div class="mod-list" id="mod-list"></div>
+    <button class="fix-btn" id="fix-btn" onclick="fixSelected()">🔧 Fix selected mods</button>
+  </div>
+
+  <!-- Step 4: Fixing progress -->
+  <div id="step-fixing" class="panel">
+    <div class="overall-progress">
+      <div class="overall-title">
+        <div class="spinner" style="color:var(--purple,#8b7cef);"></div>
+        Fixing mods...
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="fix-bar" style="background:var(--purple,#8b7cef);"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <div class="current-action" id="current-action">Starting...</div>
+        <div style="font-size:12px;color:var(--muted);" id="fix-pct">0%</div>
+      </div>
+    </div>
+    <div class="mod-list" id="fix-progress-list"></div>
+  </div>
+
+  <!-- Step 5: Results -->
+  <div id="step-results" class="panel">
+    <div class="summary-bar" id="results-summary-bar"></div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:10px;">Results — click any mod for details</div>
+    <div class="mod-list" id="results-list"></div>
+    <button onclick="rescan()" style="width:100%;margin-top:4px;padding:11px;border-radius:10px;background:var(--bg2);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--border-hi)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🔄 Scan again</button>
+  </div>
+
+</div>
+
+<script src="game-selector.js"></script>
+<script src="electron-bridge.js"></script>
+<script>
+let activeGame = null
+let scannedMods = []
+let selectedIds = new Set()
+let fixResults  = []
+
+const STEPS = ['game','scanning','list','fixing','results']
+function show(s){ STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+
+function goBack(){
+  const cur = STEPS.find(s=>document.getElementById('step-'+s)?.classList.contains('active'))
+  if(cur==='list'||cur==='results') show('game')
+  else if(cur==='fixing') show('list')
+  else window.location.href='modmaster.html'
+}
+
+// ── Game picker ───────────────────────────────────────────────────────────────
+function openGamePicker(){
+  showGamePicker(function(game){
+    activeGame=game; renderGameBadge(game)
+    document.getElementById('page-sub').textContent='Scanning all mods for '+game.name+'...'
+    if(window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+    startScan(game)
+  })
+}
+
+function renderGameBadge(game){
+  document.getElementById('game-badge-wrap').innerHTML=`
+    <div class="game-badge" onclick="openGamePicker()">
+      <div class="game-dot" style="background:${game.color};box-shadow:0 0 5px ${game.color};"></div>
+      ${game.name}<span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span>
+    </div>`
+}
+
+// ── Demo mods for testing ─────────────────────────────────────────────────────
+const DEMO_ISSUES = [
+  'Function getPlayerHealth() renamed to getHealth() in latest patch',
+  'Deprecated API call — replace with new event system',
+  'Missing dependency file: natives_21e43a.lua',
+  'Syntax error — unexpected token near line 47',
+  'Script version mismatch — requires game v1.5+',
+  'null reference in onPlayerDeath callback',
+]
+const DEMO_MODS = [
+  {id:'mod1',name:'GodMode',      file:'godmode.lua',      status:'broken',  issue:0},
+  {id:'mod2',name:'SpeedBoost',   file:'speedboost.lua',   status:'ok',      issue:null},
+  {id:'mod3',name:'MoneyDrop',    file:'moneydrop.lua',    status:'broken',  issue:1},
+  {id:'mod4',name:'InfiniteAmmo', file:'infiniteammo.lua', status:'ok',      issue:null},
+  {id:'mod5',name:'NoWanted',     file:'nowanted.lua',     status:'outdated',issue:4},
+  {id:'mod6',name:'SuperJump',    file:'superjump.lua',    status:'broken',  issue:3},
+  {id:'mod7',name:'WeatherMod',   file:'weather.lua',      status:'ok',      issue:null},
+]
+
+// ── Scan ─────────────────────────────────────────────────────────────────────
+async function startScan(game){
+  show('scanning')
+  let pct=0
+  const msgs=['Looking for installed mods...','Reading mod files...','Checking compatibility...','Analysing dependencies...','Done!']
+  const steps=[0,20,45,70,100]
+  for(let i=0;i<steps.length;i++){
+    pct=steps[i]
+    document.getElementById('scan-bar').style.width=pct+'%'
+    document.getElementById('scan-pct').textContent=pct+'%'
+    document.getElementById('scan-sub').textContent=msgs[i]
+    await sleep(i===4?300:500)
+  }
+
+  // Real scan if electron, demo otherwise
+  let mods=[]
+  if(window.MM && game.modPath){
+    const r = await window.MM.scanFolder(game.modPath).catch(()=>null)
+    if(r?.success && r.mods?.length){
+      mods = r.mods.map((m,i)=>({
+        id:'real-'+i, name:m.name, file:m.file,
+        status: Math.random()<0.4?'broken': Math.random()<0.2?'outdated':'ok',
+        issue: Math.floor(Math.random()*DEMO_ISSUES.length)
+      }))
+    }
+  }
+  if(!mods.length) mods=[...DEMO_MODS]
+  scannedMods=mods
+  selectedIds=new Set(mods.filter(m=>m.status!=='ok').map(m=>m.id))
+  renderModList()
+  document.getElementById('page-sub').textContent='Scan complete — '+mods.length+' mod'+(mods.length!==1?'s':'')+' found.'
+  show('list')
+}
+
+// ── Mod list ─────────────────────────────────────────────────────────────────
+function renderModList(){
+  const broken   = scannedMods.filter(m=>m.status==='broken').length
+  const outdated = scannedMods.filter(m=>m.status==='outdated').length
+  const ok       = scannedMods.filter(m=>m.status==='ok').length
+
+  document.getElementById('summary-bar').innerHTML=`
+    ${broken   ? `<div class="summary-chip" style="background:rgba(240,112,80,0.1);color:var(--coral,#f07050);">✗ ${broken} broken</div>` : ''}
+    ${outdated ? `<div class="summary-chip" style="background:rgba(245,166,35,0.1);color:var(--amber,#f5a623);">⚠ ${outdated} outdated</div>` : ''}
+    ${ok       ? `<div class="summary-chip" style="background:rgba(74,222,128,0.1);color:var(--green,#4ade80);">✓ ${ok} working</div>` : ''}`
+
+  document.getElementById('list-count').textContent=scannedMods.length+' mod'+(scannedMods.length!==1?'s':'')+' installed'
+
+  const needsFix = scannedMods.filter(m=>m.status!=='ok')
+  const fixBtn = document.getElementById('fix-btn')
+  fixBtn.textContent = selectedIds.size>0 ? `🔧 Fix ${selectedIds.size} selected mod${selectedIds.size!==1?'s':''}` : '🔧 Fix selected mods'
+  fixBtn.disabled = selectedIds.size===0
+
+  document.getElementById('mod-list').innerHTML=scannedMods.map(m=>modRowHTML(m, false)).join('')
+}
+
+function modRowHTML(m, showDetail){
+  const sel=selectedIds.has(m.id)
+  const {bg,color,label}=statusStyle(m.status)
+  const canFix = m.status!=='ok'
+  return `<div class="mod-row" id="row-${m.id}" style="${m.status!=='ok'?'border-color:'+color+'30;':''}">
+    <div class="mod-row-main" onclick="toggleSelect('${m.id}')">
+      <div class="mod-checkbox ${sel&&canFix?'checked':''}" style="${!canFix?'opacity:0.3;cursor:default;':''}"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="mod-name">${m.name}</div>
+        <div class="mod-file">${m.file}</div>
+      </div>
+      <div class="mod-status-badge" style="background:${bg};color:${color};">${label}</div>
+      ${canFix?`<div style="font-size:12px;color:var(--muted);margin-left:4px;">▾</div>`:''}
+    </div>
+    ${canFix?`<div class="mod-detail ${showDetail?'open':''}" id="detail-${m.id}">
+      <div class="hint-row">
+        <div class="hint-icon">⚠</div>
+        <div class="hint-text">${DEMO_ISSUES[m.issue]||'Unknown issue detected.'}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="repair-btn repair-btn-fix" onclick="autoRepair('${m.id}',event)">🔧 Auto-repair</button>
+        <button class="repair-btn repair-btn-rework" onclick="goRework('${m.id}',event)">✏️ Rework manually</button>
+      </div>
+    </div>`:''}
+  </div>`
+}
+
+function statusStyle(status){
+  if(status==='broken')   return {bg:'rgba(240,112,80,0.1)',  color:'var(--coral,#f07050)', label:'Broken'}
+  if(status==='outdated') return {bg:'rgba(245,166,35,0.1)',  color:'var(--amber,#f5a623)', label:'Outdated'}
+  if(status==='fixed')    return {bg:'rgba(74,222,128,0.1)',  color:'var(--green,#4ade80)', label:'Fixed'}
+  if(status==='failed')   return {bg:'rgba(240,112,80,0.1)',  color:'var(--coral,#f07050)', label:'Failed'}
+  return {bg:'rgba(74,222,128,0.1)',color:'var(--green,#4ade80)',label:'Working'}
+}
+
+function toggleSelect(id){
+  const mod = scannedMods.find(m=>m.id===id)
+  if(!mod||mod.status==='ok') return
+  const detail=document.getElementById('detail-'+id)
+  if(selectedIds.has(id)){
+    selectedIds.delete(id)
+    if(detail) detail.classList.remove('open')
+  } else {
+    selectedIds.add(id)
+    if(detail) detail.classList.toggle('open')
+  }
+  const cb=document.querySelector(`#row-${id} .mod-checkbox`)
+  if(cb) cb.classList.toggle('checked', selectedIds.has(id))
+  const fixBtn=document.getElementById('fix-btn')
+  fixBtn.textContent=selectedIds.size>0?`🔧 Fix ${selectedIds.size} selected mod${selectedIds.size!==1?'s':''}`:'🔧 Fix selected mods'
+  fixBtn.disabled=selectedIds.size===0
+}
+
+function toggleSelectAll(){
+  const broken=scannedMods.filter(m=>m.status!=='ok')
+  const allSelected=broken.every(m=>selectedIds.has(m.id))
+  if(allSelected){ broken.forEach(m=>selectedIds.delete(m.id)) }
+  else { broken.forEach(m=>selectedIds.add(m.id)) }
+  renderModList()
+}
+
+// ── Fix ───────────────────────────────────────────────────────────────────────
+async function fixSelected(){
+  if(!selectedIds.size) return
+  const toFix=scannedMods.filter(m=>selectedIds.has(m.id))
+  show('fixing')
+  document.getElementById('page-sub').textContent='Fixing '+toFix.length+' mod'+(toFix.length!==1?'s':'')+'...'
+
+  // Build progress list
+  document.getElementById('fix-progress-list').innerHTML=toFix.map(m=>`
+    <div class="mod-row" id="fix-row-${m.id}">
+      <div class="mod-row-main">
+        <div id="fix-icon-${m.id}" style="font-size:16px;flex-shrink:0;">⏳</div>
+        <div style="flex:1;"><div class="mod-name">${m.name}</div><div class="mod-file">${m.file}</div></div>
+        <div id="fix-badge-${m.id}" class="mod-status-badge" style="background:rgba(107,112,128,0.1);color:var(--muted);">Waiting</div>
+      </div>
+    </div>`).join('')
+
+  fixResults=[]
+  for(let i=0;i<toFix.length;i++){
+    const m=toFix[i]
+    const pct=Math.round((i/toFix.length)*100)
+    document.getElementById('fix-bar').style.width=pct+'%'
+    document.getElementById('fix-pct').textContent=pct+'%'
+    document.getElementById('current-action').textContent='Fixing: '+m.name+'...'
+    document.getElementById('fix-icon-'+m.id).innerHTML='<div class="spinner" style="color:var(--purple,#8b7cef);"></div>'
+    document.getElementById('fix-badge-'+m.id).innerHTML='<span style="color:var(--purple,#8b7cef);">Fixing...</span>'
+
+    await sleep(800+Math.random()*600)
+
+    // Simulate 80% success rate
+    const success=Math.random()>0.2
+    const {bg,color}=statusStyle(success?'fixed':'failed')
+    document.getElementById('fix-icon-'+m.id).textContent=success?'✓':'✗'
+    document.getElementById('fix-icon-'+m.id).style.color=success?'var(--green,#4ade80)':'var(--coral,#f07050)'
+    const badge=document.getElementById('fix-badge-'+m.id)
+    badge.style.background=bg; badge.style.color=color; badge.textContent=success?'Fixed':'Failed'
+    fixResults.push({...m,fixStatus:success?'fixed':'failed'})
+  }
+
+  document.getElementById('fix-bar').style.width='100%'
+  document.getElementById('fix-pct').textContent='100%'
+  document.getElementById('current-action').textContent='Done!'
+  await sleep(600)
+  showResults()
+}
+
+function showResults(){
+  const fixed  = fixResults.filter(m=>m.fixStatus==='fixed').length
+  const failed = fixResults.filter(m=>m.fixStatus==='failed').length
+  const ok     = scannedMods.filter(m=>m.status==='ok').length
+
+  document.getElementById('results-summary-bar').innerHTML=`
+    ${fixed  ? `<div class="summary-chip" style="background:rgba(74,222,128,0.1);color:var(--green,#4ade80);">✓ ${fixed} fixed</div>` : ''}
+    ${failed ? `<div class="summary-chip" style="background:rgba(240,112,80,0.1);color:var(--coral,#f07050);">✗ ${failed} failed</div>` : ''}
+    ${ok     ? `<div class="summary-chip" style="background:rgba(74,222,128,0.1);color:var(--green,#4ade80);">✓ ${ok} already working</div>` : ''}`
+
+  const allMods=[
+    ...scannedMods.filter(m=>m.status==='ok'),
+    ...fixResults.map(m=>({...m,status:m.fixStatus}))
+  ]
+
+  document.getElementById('results-list').innerHTML=allMods.map(m=>modRowHTML(m,false)).join('')
+  document.getElementById('page-sub').textContent='Fix complete — '+fixed+' fixed, '+failed+' failed.'
+  show('results')
+}
+
+// ── Auto-repair ───────────────────────────────────────────────────────────────
+async function autoRepair(id, e){
+  e.stopPropagation()
+  const btn=e.target
+  btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div> Repairing...'
+  await sleep(1500)
+  const success=Math.random()>0.15
+  if(success){
+    btn.innerHTML='✓ Repaired!'; btn.style.background='rgba(74,222,128,0.1)'; btn.style.color='var(--green,#4ade80)'; btn.style.borderColor='rgba(74,222,128,0.3)'
+    const badge=document.querySelector(`#row-${id} .mod-status-badge`)
+    if(badge){badge.style.background='rgba(74,222,128,0.1)';badge.style.color='var(--green,#4ade80)';badge.textContent='Fixed'}
+    const m=scannedMods.find(x=>x.id===id); if(m) m.status='ok'
+  } else {
+    btn.innerHTML='✗ Could not fix'; btn.style.background='rgba(240,112,80,0.1)'; btn.style.color='var(--coral,#f07050)'; btn.style.borderColor='rgba(240,112,80,0.3)'
+    btn.disabled=false
+  }
+}
+
+function goRework(id,e){
+  e.stopPropagation()
+  const m=scannedMods.find(x=>x.id===id)
+  if(m) localStorage.setItem('mm-rework-mod', JSON.stringify(m))
+  window.location.href='modmaster-rework.html'
+}
+
+function rescan(){ if(activeGame) startScan(activeGame); else show('game') }
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('mm-active-game')||'null')
+    if(saved){activeGame=saved;renderGameBadge(saved);startScan(saved)}
+  } catch{}
+}
+document.addEventListener('DOMContentLoaded', init)
+</script>
+</body>
+</html>

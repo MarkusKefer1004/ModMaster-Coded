@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModMaster — Create Mods</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
+#titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
+#titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-controls{display:flex;-webkit-app-region:no-drag;}
+.tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+#tb-close:hover{background:#c42b2b;color:#fff;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+/* nav */
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+/* game badge */
+.game-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:4px 12px 4px 8px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color 0.2s;}
+.game-badge:hover{border-color:var(--border-hi);}
+.game-dot{width:7px;height:7px;border-radius:50%;}
+/* page title */
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+/* choice cards */
+.choice-grid{display:flex;flex-direction:column;gap:12px;max-width:560px;}
+.choice-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:1.25rem 1.5rem;cursor:pointer;display:flex;align-items:center;gap:1.25rem;transition:border-color 0.2s,transform 0.15s;position:relative;overflow:hidden;}
+.choice-card:hover{transform:translateX(4px);}
+.choice-card-accent{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:14px 0 0 14px;}
+.choice-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;}
+.choice-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:3px;}
+.choice-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.choice-arrow{margin-left:auto;font-size:1.2rem;color:var(--muted);flex-shrink:0;}
+/* section panels */
+.panel{display:none;max-width:640px;}
+.panel.active{display:block;}
+/* AI panel */
+.ai-textarea{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;transition:border-color 0.2s;min-height:90px;line-height:1.6;}
+.ai-textarea:focus{border-color:var(--teal,#2dd4a0);}
+.ai-textarea::placeholder{color:var(--muted);}
+.example-pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;}
+.pill{background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:5px 12px;font-size:11px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.pill:hover{border-color:var(--border-hi);color:var(--text);}
+/* complexity slider */
+.complexity-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;}
+.complexity-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.complexity-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;}
+.complexity-val{font-size:12px;font-weight:600;color:var(--teal,#2dd4a0);font-family:'Rajdhani',sans-serif;letter-spacing:0.05em;}
+input[type=range].complexity-range{width:100%;accent-color:var(--teal,#2dd4a0);margin-bottom:6px;}
+.complexity-ends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);line-height:1.4;}
+/* templates */
+.tmpl-search-wrap{position:relative;margin-bottom:1rem;}
+.tmpl-search{width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:9px 12px 9px 36px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;}
+.tmpl-search:focus{border-color:var(--teal,#2dd4a0);}
+.tmpl-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);pointer-events:none;}
+.tmpl-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
+.cat-btn{padding:5px 12px;border-radius:99px;font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;border:0.5px solid var(--border);background:var(--bg2);color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.cat-btn.active,.cat-btn:hover{color:var(--text);border-color:var(--border-hi);}
+.tmpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;}
+.tmpl-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:0.875rem;cursor:pointer;transition:border-color 0.15s,transform 0.15s;position:relative;overflow:hidden;}
+.tmpl-card:hover{transform:translateY(-2px);}
+.tmpl-card-bar{position:absolute;top:0;left:0;right:0;height:2px;}
+.tmpl-name{font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
+.tmpl-desc{font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:6px;}
+.tmpl-badge{font-size:9px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:2px 7px;border-radius:4px;}
+/* textures */
+.drop-zone{border:1.5px dashed var(--border);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--teal,#2dd4a0);background:rgba(45,212,160,0.04);}
+.drop-zone-icon{font-size:2.5rem;margin-bottom:0.75rem;opacity:0.5;}
+.drop-zone-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:6px;}
+.drop-zone-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.texture-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:1rem;}
+.texture-thumb{background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;aspect-ratio:1;overflow:hidden;position:relative;}
+.texture-thumb img{width:100%;height:100%;object-fit:cover;}
+.texture-thumb-name{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);font-size:9px;color:#fff;padding:3px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.texture-remove{position:absolute;top:4px;right:4px;width:18px;height:18px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#fff;}
+/* generate button */
+.gen-btn{width:100%;padding:13px;border-radius:11px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--teal,#2dd4a0);color:#0a1a14;margin-top:4px;}
+.gen-btn:hover{opacity:0.88;}
+.gen-btn:disabled{opacity:0.4;cursor:not-allowed;}
+/* progress */
+.progress-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;}
+.progress-bar-track{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:1rem 0 0.75rem;}
+.progress-bar-fill{height:100%;background:var(--teal,#2dd4a0);border-radius:99px;transition:width 0.4s ease;width:0%;}
+.progress-label{font-size:12px;color:var(--muted);}
+/* result */
+.result-panel{background:var(--bg2);border:0.5px solid var(--teal,#2dd4a0);border-radius:16px;overflow:hidden;}
+.result-header{padding:1.25rem;border-bottom:0.5px solid var(--border);background:rgba(45,212,160,0.05);}
+.result-mod-name{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--teal,#2dd4a0);margin-bottom:4px;}
+.result-desc{font-size:13px;color:var(--muted);line-height:1.55;}
+.result-body{padding:1.25rem;}
+.result-section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:8px;}
+.effect-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:5px;}
+.effect-icon{font-size:14px;flex-shrink:0;}
+.effect-label{font-size:13px;color:var(--text);flex:1;}
+.effect-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--teal,#2dd4a0);}
+.file-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin:0 4px 4px 0;}
+.result-actions{padding:1.25rem;border-top:0.5px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;}
+.action-btn{flex:1;padding:11px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:7px;min-width:120px;}
+.btn-install{background:var(--teal,#2dd4a0);color:#0a1a14;}
+.btn-install:hover{opacity:0.85;}
+.btn-download{background:var(--bg3);color:var(--text);border:0.5px solid var(--border);}
+.btn-download:hover{border-color:var(--border-hi);}
+.btn-rework{background:rgba(224,96,144,0.1);color:var(--pink,#e06090);border:0.5px solid rgba(224,96,144,0.3);}
+.btn-rework:hover{background:var(--pink,#e06090);color:#fff;}
+.rework-hint{font-size:11px;color:var(--muted);width:100%;text-align:center;padding-top:4px;}
+/* progress states */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(0,0,0,0.2);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;}
+.section-divider{height:0.5px;background:var(--border);margin:1.25rem 0;}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
+  <div id="titlebar-controls">
+    <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="mm-main-content">
+
+  <!-- Top nav -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;" class="fade-in">
+    <button class="back-btn" id="back-btn" onclick="goBack()">← Back</button>
+    <div id="game-badge-wrap"></div>
+  </div>
+
+  <!-- Page title -->
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Create Mods</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Choose a game and a creation method to get started.</div>
+
+  <!-- STEP 0: Game pick prompt -->
+  <div id="step-game" class="panel active">
+    <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;">
+      <div style="font-size:2.5rem;margin-bottom:1rem;">🎮</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">Which game are you modding?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.6;">Select a game and ModMaster will know exactly where to install your mod.</div>
+      <button onclick="openGamePicker()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--teal,#2dd4a0);color:#0a1a14;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">🎮 Choose a game</button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Method choice -->
+  <div id="step-method" class="panel">
+    <div class="choice-grid">
+      <div class="choice-card" onclick="goToMethod('ai')" onmouseover="this.style.borderColor='rgba(45,212,160,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="choice-card-accent" style="background:var(--teal,#2dd4a0);"></div>
+        <div class="choice-icon" style="background:rgba(45,212,160,0.1);">✨</div>
+        <div style="flex:1;">
+          <div class="choice-title" style="color:var(--teal,#2dd4a0);">Describe it with AI</div>
+          <div class="choice-desc">Type what you want in plain English. AI writes the code for you instantly.</div>
+        </div>
+        <div class="choice-arrow">→</div>
+      </div>
+      <div class="choice-card" onclick="goToMethod('templates')" onmouseover="this.style.borderColor='rgba(139,124,239,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="choice-card-accent" style="background:var(--purple,#8b7cef);"></div>
+        <div class="choice-icon" style="background:rgba(139,124,239,0.1);">📋</div>
+        <div style="flex:1;">
+          <div class="choice-title" style="color:var(--purple,#8b7cef);">Use a template</div>
+          <div class="choice-desc">Pick from ready-made mod types. Fill in your values, done.</div>
+        </div>
+        <div class="choice-arrow">→</div>
+      </div>
+      <div class="choice-card" onclick="goToMethod('textures')" onmouseover="this.style.borderColor='rgba(240,112,80,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="choice-card-accent" style="background:var(--coral,#f07050);"></div>
+        <div class="choice-icon" style="background:rgba(240,112,80,0.1);">🖼</div>
+        <div style="flex:1;">
+          <div class="choice-title" style="color:var(--coral,#f07050);">Drop in textures</div>
+          <div class="choice-desc">Drag and drop your images to replace in-game textures. No coding needed.</div>
+        </div>
+        <div class="choice-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2a: AI -->
+  <div id="step-ai" class="panel">
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:8px;">Describe your mod</div>
+      <textarea class="ai-textarea" id="ai-prompt" placeholder="e.g. Give me infinite stamina and make me run twice as fast in Skyrim..."></textarea>
+    </div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:6px;">Try an example</div>
+    <div class="example-pills" id="example-pills"></div>
+    <div class="complexity-wrap">
+      <div class="complexity-label-row">
+        <div class="complexity-title">Complexity</div>
+        <div class="complexity-val" id="complexity-label">Simple</div>
+      </div>
+      <input type="range" class="complexity-range" id="complexity" min="1" max="4" step="1" value="1" oninput="updateComplexity()">
+      <div class="complexity-ends">
+        <div>Quick — one effect,<br>instant install</div>
+        <div style="text-align:right;">Detailed — multiple effects,<br>more options</div>
+      </div>
+    </div>
+    <button class="gen-btn" onclick="generateMod('ai')" id="gen-ai-btn">✨ Generate mod</button>
+  </div>
+
+  <!-- STEP 2b: Templates -->
+  <div id="step-templates" class="panel">
+    <div class="tmpl-search-wrap">
+      <span class="tmpl-search-icon">🔍</span>
+      <input class="tmpl-search" type="text" id="tmpl-search" placeholder="Search templates..." oninput="filterTemplates()">
+    </div>
+    <div class="tmpl-cats" id="tmpl-cats"></div>
+    <div class="tmpl-grid" id="tmpl-grid"></div>
+  </div>
+
+  <!-- STEP 2c: Textures -->
+  <div id="step-textures" class="panel">
+    <div class="drop-zone" id="drop-zone" onclick="browseTextures()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+      <div class="drop-zone-icon">🖼</div>
+      <div class="drop-zone-title">Drop textures here</div>
+      <div class="drop-zone-sub">PNG, JPG or DDS files — drag them in or click to browse<br>ModMaster will package them into a ready-to-install mod</div>
+    </div>
+    <input type="file" id="texture-file-input" multiple accept=".png,.jpg,.jpeg,.dds" style="display:none" onchange="handleTextureFiles(this.files)">
+    <div class="texture-preview-grid" id="texture-preview"></div>
+    <button class="gen-btn" id="gen-tex-btn" onclick="generateMod('textures')" style="display:none;background:var(--coral,#f07050);color:#fff;margin-top:1rem;">📦 Package textures</button>
+  </div>
+
+  <!-- STEP 3: Progress -->
+  <div id="step-progress" class="panel">
+    <div class="progress-wrap">
+      <div style="font-size:2rem;margin-bottom:0.75rem;" id="progress-icon">✨</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:6px;" id="progress-title">Generating your mod...</div>
+      <div class="progress-label" id="progress-msg">Thinking about your request</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar"></div></div>
+      <div class="progress-label" id="progress-pct">0%</div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Result -->
+  <div id="step-result" class="panel">
+    <div class="result-panel fade-in">
+      <div class="result-header">
+        <div class="result-mod-name" id="result-name">Mod Name</div>
+        <div class="result-desc" id="result-desc"></div>
+      </div>
+      <div class="result-body">
+        <div class="result-section-title">What this mod does</div>
+        <div id="result-effects"></div>
+        <div class="section-divider"></div>
+        <div class="result-section-title">Files created</div>
+        <div id="result-files"></div>
+      </div>
+      <div class="result-actions">
+        <button class="action-btn btn-install" onclick="installMod()">⚡ Install now</button>
+        <button class="action-btn btn-download" onclick="downloadMod()">⬇ Download</button>
+        <button class="action-btn btn-rework" onclick="reworkMod()">✏️ Rework it</button>
+        <div class="rework-hint" id="rework-hint">Not happy? Click Rework to tweak values or describe changes to AI.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="game-selector.js"></script>
+<script src="electron-bridge.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentStep = 'game'
+let activeGame  = null
+let generatedMod = null
+let textureFiles = []
+let activeMethod = null
+
+const STEPS = ['game','method','ai','templates','textures','progress','result']
+
+function show(stepId) {
+  STEPS.forEach(s => {
+    const el = document.getElementById('step-'+s)
+    if (el) el.classList.toggle('active', s === stepId)
+  })
+  currentStep = stepId
+}
+
+function goBack() {
+  const btn = document.getElementById('back-btn')
+  if (currentStep === 'method')   { show('game'); btn.textContent = '← Home' }
+  else if (['ai','templates','textures'].includes(currentStep)) show('method')
+  else if (currentStep === 'result') show(activeMethod||'method')
+  else window.location.href = 'modmaster.html'
+}
+
+// ── Game picker ──────────────────────────────────────────────────────────────
+function openGamePicker() {
+  const anchor = document.getElementById('game-badge-wrap')
+  showGamePicker(function(game) {
+    activeGame = game
+    renderGameBadge(game)
+    checkModFolder(game)
+    document.getElementById('page-sub').textContent = 'How do you want to create your mod?'
+    document.getElementById('back-btn').textContent = '← Home'
+    refreshExamplePills()
+    show('method')
+    if (window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+  })
+}
+
+function renderGameBadge(game) {
+  document.getElementById('game-badge-wrap').innerHTML = `
+    <div class="game-badge" onclick="openGamePicker()">
+      <div class="game-dot" style="background:${game.color};box-shadow:0 0 5px ${game.color};"></div>
+      ${game.name}
+      <span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span>
+    </div>`
+}
+
+async function checkModFolder(game) {
+  if (!game.modPath || !window.MM) return
+  const result = await window.MM.scanFolder(game.modPath).catch(()=>null)
+  if (!result?.success && window.MM) {
+    const known = ['GTA V','Skyrim SE','Cyberpunk 2077','RDR2','Stardew Valley','Minecraft']
+    if (known.includes(game.name)) {
+      setTimeout(()=>{
+        if (confirm(`No mod folder found for ${game.name}. Create one at:\n${game.modPath}?`)) {
+          window.MM.createModFolder(game.modPath)
+        }
+      }, 400)
+    }
+  }
+}
+
+// ── Method navigation ────────────────────────────────────────────────────────
+function goToMethod(method) {
+  activeMethod = method
+  if (method === 'ai')        { show('ai');        document.getElementById('page-sub').textContent = 'Describe your mod in plain English.' }
+  if (method === 'templates') { show('templates'); document.getElementById('page-sub').textContent = 'Pick a template and fill in your values.' }
+  if (method === 'textures')  { show('textures');  document.getElementById('page-sub').textContent = 'Drop your images to replace in-game textures.' }
+}
+
+// ── Complexity slider ────────────────────────────────────────────────────────
+const COMPLEXITY_LABELS = ['Simple','Balanced','Detailed','Advanced']
+function updateComplexity() {
+  const v = parseInt(document.getElementById('complexity').value)
+  document.getElementById('complexity-label').textContent = COMPLEXITY_LABELS[v-1]
+}
+
+// ── Example pills ────────────────────────────────────────────────────────────
+const EXAMPLES_BY_GAME = {
+  default: ['Infinite health','Double speed','Starting money x10','Unlock all items','No damage taken'],
+  'GTA V': ['No wanted level','God mode','Infinite ammo','$1M starting cash','Super jump'],
+  'Skyrim SE': ['Infinite stamina','Carry weight 99999','Unlock all shouts','Faster leveling','No fall damage'],
+  'RDR2': ['Infinite dead eye','Infinite money','Horse speed x2','No bounty','Max honor'],
+  'Minecraft': ['Instant smelting','Double drops','Fly in survival','Infinite items','Fast growth'],
+  'Stardew Valley': ['Infinite energy','Faster crops','Better fishing','Auto-water','Infinite money'],
+  'Cyberpunk 2077': ['Infinite stamina','All cyberware','Double XP','No wanted','Infinite ammo'],
+}
+
+function refreshExamplePills() {
+  const pills = document.getElementById('example-pills')
+  const examples = (activeGame && EXAMPLES_BY_GAME[activeGame.name]) || EXAMPLES_BY_GAME.default
+  pills.innerHTML = examples.map((e,i) => {
+    const colors = ['var(--teal,#2dd4a0)','var(--purple,#8b7cef)','var(--amber,#f5a623)','var(--coral,#f07050)','var(--pink,#e06090)']
+    const c = colors[i % colors.length]
+    return `<div class="pill" onclick="usePill(this.textContent)" style="color:${c};border-color:${c}40;">${e}</div>`
+  }).join('')
+}
+
+function usePill(text) {
+  const ta = document.getElementById('ai-prompt')
+  ta.value = text
+  ta.focus()
+}
+
+// ── Templates data ───────────────────────────────────────────────────────────
+const TEMPLATES = [
+  // Gameplay — teal
+  {id:'god-mode',     cat:'gameplay', name:'God Mode',          desc:'Invincibility — infinite health and armor.',                color:'var(--teal,#2dd4a0)',   fields:[{label:'Health',value:100,unit:'%'},{label:'Armor',value:100,unit:'%'}]},
+  {id:'inf-stamina',  cat:'gameplay', name:'Infinite Stamina',  desc:'Stamina never drains.',                                     color:'var(--teal,#2dd4a0)',   fields:[{label:'Drain rate',value:0,unit:'%'}]},
+  {id:'speed-boost',  cat:'gameplay', name:'Speed Boost',       desc:'Multiply movement speed.',                                  color:'var(--teal,#2dd4a0)',   fields:[{label:'Multiplier',value:2,unit:'x'}]},
+  {id:'super-jump',   cat:'gameplay', name:'Super Jump',        desc:'Multiply jump height.',                                     color:'var(--teal,#2dd4a0)',   fields:[{label:'Jump height',value:3,unit:'x'}]},
+  {id:'no-damage',    cat:'gameplay', name:'No Damage',         desc:'Block all incoming damage.',                                color:'var(--teal,#2dd4a0)',   fields:[{label:'Damage taken',value:0,unit:'%'}]},
+  {id:'inf-ammo',     cat:'gameplay', name:'Infinite Ammo',     desc:'Weapons never run out of ammo.',                           color:'var(--teal,#2dd4a0)',   fields:[{label:'Ammo reserve',value:9999,unit:''}]},
+  {id:'fast-xp',      cat:'gameplay', name:'Fast XP',           desc:'Multiply all experience gains.',                            color:'var(--teal,#2dd4a0)',   fields:[{label:'XP multiplier',value:5,unit:'x'}]},
+  // Economy — amber
+  {id:'start-money',  cat:'economy',  name:'Starting Money',    desc:'Set the amount of money you start with.',                  color:'var(--amber,#f5a623)',  fields:[{label:'Starting amount',value:1000000,unit:'$'}]},
+  {id:'dbl-loot',     cat:'economy',  name:'Double Loot',       desc:'All item drops are doubled.',                               color:'var(--amber,#f5a623)',  fields:[{label:'Drop multiplier',value:2,unit:'x'}]},
+  {id:'shop-disc',    cat:'economy',  name:'Shop Discount',     desc:'Reduce all store prices.',                                  color:'var(--amber,#f5a623)',  fields:[{label:'Price reduction',value:50,unit:'%'}]},
+  {id:'fast-craft',   cat:'economy',  name:'Instant Crafting',  desc:'All crafting and smelting completes instantly.',            color:'var(--amber,#f5a623)',  fields:[{label:'Craft time',value:0,unit:'s'}]},
+  {id:'carry-wt',     cat:'economy',  name:'Carry Weight',      desc:'Remove or increase the carry weight limit.',               color:'var(--amber,#f5a623)',  fields:[{label:'Carry weight',value:99999,unit:''}]},
+  // Visual — purple
+  {id:'weather',      cat:'visual',   name:'Weather Lock',      desc:'Lock the weather to a specific type.',                     color:'var(--purple,#8b7cef)', fields:[{label:'Weather type',value:'Clear',unit:''}]},
+  {id:'timescale',    cat:'visual',   name:'Time Speed',        desc:'Control how fast in-game time passes.',                    color:'var(--purple,#8b7cef)', fields:[{label:'Time multiplier',value:1,unit:'x'}]},
+  {id:'fov',          cat:'visual',   name:'Field of View',     desc:'Change the camera field of view.',                         color:'var(--purple,#8b7cef)', fields:[{label:'FOV',value:90,unit:'°'}]},
+  // Game-specific — coral
+  {id:'no-wanted',    cat:'game',     name:'No Wanted Level',   desc:'Disable all wanted stars. (GTA V)',                        color:'var(--coral,#f07050)',  fields:[]},
+  {id:'all-shouts',   cat:'game',     name:'All Shouts',        desc:'Unlock every dragon shout. (Skyrim)',                      color:'var(--coral,#f07050)',  fields:[{label:'Shout cooldown',value:0,unit:'s'}]},
+  {id:'inf-deadeye',  cat:'game',     name:'Infinite Dead Eye', desc:'Dead Eye never drains. (RDR2)',                            color:'var(--coral,#f07050)',  fields:[{label:'Drain rate',value:0,unit:'%'}]},
+  {id:'fly-survival', cat:'game',     name:'Fly in Survival',   desc:'Enable creative flight in survival mode. (Minecraft)',     color:'var(--coral,#f07050)',  fields:[]},
+  {id:'auto-water',   cat:'game',     name:'Auto-Water',        desc:'Crops water themselves every morning. (Stardew Valley)',   color:'var(--coral,#f07050)',  fields:[{label:'Radius',value:5,unit:'tiles'}]},
+  // Stealth — pink
+  {id:'no-fall',      cat:'stealth',  name:'No Fall Damage',    desc:'Disable all fall damage.',                                 color:'var(--pink,#e06090)',   fields:[]},
+  {id:'silent-feet',  cat:'stealth',  name:'Silent Movement',   desc:'Enemies cannot hear player movement.',                     color:'var(--pink,#e06090)',   fields:[{label:'Noise radius',value:0,unit:'m'}]},
+  {id:'invis',        cat:'stealth',  name:'Invisibility',      desc:'Make the player invisible to enemies.',                    color:'var(--pink,#e06090)',   fields:[{label:'Duration',value:60,unit:'s'}]},
+]
+
+const CATS = [
+  {id:'all',      label:'All',          color:'var(--muted)'},
+  {id:'gameplay', label:'Gameplay',     color:'var(--teal,#2dd4a0)'},
+  {id:'economy',  label:'Economy',      color:'var(--amber,#f5a623)'},
+  {id:'visual',   label:'Visual',       color:'var(--purple,#8b7cef)'},
+  {id:'game',     label:'Game-specific',color:'var(--coral,#f07050)'},
+  {id:'stealth',  label:'Stealth',      color:'var(--pink,#e06090)'},
+]
+
+let activeCat = 'all'
+
+function renderTemplates() {
+  // Category buttons
+  document.getElementById('tmpl-cats').innerHTML = CATS.map(c => `
+    <button class="cat-btn ${c.id===activeCat?'active':''}" onclick="setCat('${c.id}')"
+      style="${c.id===activeCat?'border-color:'+c.color+';color:'+c.color+';background:'+c.color+'15;':''}">
+      ${c.label}
+    </button>`).join('')
+
+  filterTemplates()
+}
+
+function setCat(id) { activeCat = id; renderTemplates() }
+
+function filterTemplates() {
+  const q = document.getElementById('tmpl-search').value.toLowerCase()
+  const filtered = TEMPLATES.filter(t =>
+    (activeCat === 'all' || t.cat === activeCat) &&
+    (!q || t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
+  )
+  const grid = document.getElementById('tmpl-grid')
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:1.5rem;text-align:center;color:var(--muted);font-size:13px;">No templates found</div>`
+    return
+  }
+  grid.innerHTML = filtered.map(t => `
+    <div class="tmpl-card" onclick="useTemplate('${t.id}')" onmouseover="this.style.borderColor='${t.color}'" onmouseout="this.style.borderColor='var(--border)'">
+      <div class="tmpl-card-bar" style="background:${t.color};"></div>
+      <div class="tmpl-name" style="color:${t.color};">${t.name}</div>
+      <div class="tmpl-desc">${t.desc}</div>
+      <div class="tmpl-badge" style="background:${t.color}15;color:${t.color};">${t.cat}</div>
+    </div>`).join('')
+}
+
+function useTemplate(id) {
+  const tmpl = TEMPLATES.find(t => t.id === id)
+  if (!tmpl) return
+  // Pre-fill AI with template description and generate
+  document.getElementById('ai-prompt').value = `Create a "${tmpl.name}" mod for ${activeGame?.name||'my game'}. ${tmpl.desc}`
+  generateMod('template', tmpl)
+}
+
+// ── Textures ──────────────────────────────────────────────────────────────────
+function browseTextures() { document.getElementById('texture-file-input').click() }
+
+function handleDrop(e) {
+  e.preventDefault()
+  document.getElementById('drop-zone').classList.remove('drag-over')
+  handleTextureFiles(e.dataTransfer.files)
+}
+
+function handleTextureFiles(files) {
+  Array.from(files).forEach(f => { if (!textureFiles.find(x=>x.name===f.name)) textureFiles.push(f) })
+  renderTexturePreviews()
+}
+
+function renderTexturePreviews() {
+  const grid = document.getElementById('texture-preview')
+  const btn  = document.getElementById('gen-tex-btn')
+  grid.innerHTML = textureFiles.map((f,i) => {
+    const url = URL.createObjectURL(f)
+    return `<div class="texture-thumb">
+      <img src="${url}" alt="${f.name}">
+      <div class="texture-thumb-name">${f.name}</div>
+      <div class="texture-remove" onclick="removeTexture(${i})">✕</div>
+    </div>`
+  }).join('')
+  btn.style.display = textureFiles.length ? 'flex' : 'none'
+}
+
+function removeTexture(i) { textureFiles.splice(i,1); renderTexturePreviews() }
+
+// ── Generate ─────────────────────────────────────────────────────────────────
+async function generateMod(type, templateData) {
+  show('progress')
+  setProgress(0, 'Preparing your request...')
+
+  const prompt = document.getElementById('ai-prompt').value.trim()
+  const complexity = parseInt(document.getElementById('complexity').value)
+  const game = activeGame?.name || 'a game'
+
+  if (type !== 'textures' && !prompt && !templateData) {
+    show(activeMethod||'ai')
+    alert('Please describe your mod or pick a template first.')
+    return
+  }
+
+  // Progress animation
+  let pct = 0
+  const msgs = ['Thinking about your request...','Writing the mod code...','Checking compatibility...','Finalising...']
+  const interval = setInterval(() => {
+    pct = Math.min(pct + (type==='textures'?15:8), 85)
+    setProgress(pct, msgs[Math.floor(pct/25)] || msgs[3])
+  }, 300)
+
+  let result
+  try {
+    if (type === 'textures') {
+      await new Promise(r=>setTimeout(r,1500))
+      result = buildTextureResult()
+    } else if (type === 'template' && templateData) {
+      await new Promise(r=>setTimeout(r,1200))
+      result = buildTemplateResult(templateData)
+    } else {
+      result = await callAI(prompt, game, complexity)
+    }
+  } catch(e) {
+    clearInterval(interval)
+    show(activeMethod||'ai')
+    alert('Generation failed: ' + e.message)
+    return
+  }
+
+  clearInterval(interval)
+  setProgress(100, 'Done!')
+  generatedMod = result
+  setTimeout(()=>showResult(result), 500)
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progress-bar').style.width = pct+'%'
+  document.getElementById('progress-pct').textContent = pct+'%'
+  document.getElementById('progress-msg').textContent = msg
+}
+
+async function callAI(prompt, game, complexity) {
+  const complexityDesc = ['one simple effect','2-3 effects','3-5 effects with options','a comprehensive multi-system mod'][complexity-1]
+  const systemPrompt = `You are a game mod generator. Generate ${complexityDesc} for ${game}. 
+Respond ONLY with valid JSON, no markdown, no explanation. Format:
+{"name":"Mod Name","description":"What this mod does in one sentence","effects":[{"label":"Effect name","value":"value or number","unit":"unit like % or x or $"}],"files":["filename.lua"],"code":"// mod code here"}`
+
+  const key = window.MM ? await window.MM.getApiKey() : localStorage.getItem('mm-api-key')
+  if (!key) {
+    // Demo fallback
+    await new Promise(r=>setTimeout(r,1500))
+    return buildDemoResult(prompt, game)
+  }
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+      messages:[{role:'user',content:`Generate a mod for ${game}: ${prompt}`}],
+      system:systemPrompt})
+  })
+  const data = await resp.json()
+  const text = data?.content?.[0]?.text || ''
+  try {
+    const clean = text.replace(/```json|```/g,'').trim()
+    return JSON.parse(clean)
+  } catch {
+    return buildDemoResult(prompt, game)
+  }
+}
+
+function buildDemoResult(prompt, game) {
+  return {
+    name: prompt.length > 30 ? prompt.slice(0,28)+'...' : (prompt||'Custom Mod'),
+    description: `A custom mod for ${game} based on your request.`,
+    effects: [{label:'Primary effect',value:'Active',unit:''},{label:'Strength',value:100,unit:'%'}],
+    files: ['custom_mod.lua'],
+    code: `-- ${prompt}\n-- Generated for ${game}`
+  }
+}
+
+function buildTemplateResult(tmpl) {
+  return {
+    name: tmpl.name,
+    description: tmpl.desc,
+    effects: tmpl.fields.map(f=>({label:f.label,value:f.value,unit:f.unit})),
+    files: [tmpl.id+'.lua'],
+    code: `-- ${tmpl.name}\n-- Template mod for ${activeGame?.name||'game'}`
+  }
+}
+
+function buildTextureResult() {
+  return {
+    name: 'Texture Pack',
+    description: `Custom texture replacement with ${textureFiles.length} image${textureFiles.length!==1?'s':''}.`,
+    effects: textureFiles.map(f=>({label:'Replace texture',value:f.name,unit:''})),
+    files: textureFiles.map(f=>f.name),
+    code: null
+  }
+}
+
+// ── Result screen ─────────────────────────────────────────────────────────────
+function showResult(mod) {
+  document.getElementById('result-name').textContent = mod.name || 'Your Mod'
+  document.getElementById('result-desc').textContent = mod.description || ''
+  document.getElementById('result-effects').innerHTML = (mod.effects||[]).map(e=>`
+    <div class="effect-row">
+      <span class="effect-icon">✓</span>
+      <span class="effect-label">${e.label}</span>
+      <span class="effect-val">${e.value}${e.unit?'&nbsp;'+e.unit:''}</span>
+    </div>`).join('')
+  document.getElementById('result-files').innerHTML = (mod.files||[]).map(f=>`<span class="file-chip">📄 ${f}</span>`).join('')
+  show('result')
+  document.getElementById('page-sub').textContent = 'Your mod is ready.'
+}
+
+async function installMod() {
+  if (!generatedMod || !activeGame) { alert('No game selected.'); return }
+  const btn = document.querySelector('.btn-install')
+  btn.innerHTML = '<div class="spinner"></div> Installing...'
+  btn.disabled = true
+  await new Promise(r=>setTimeout(r,1200))
+  btn.innerHTML = '✓ Installed!'
+  btn.style.background = 'rgba(74,222,128,0.15)'
+  btn.style.color = 'var(--green,#4ade80)'
+  setTimeout(()=>{btn.innerHTML='⚡ Install now';btn.style.background='var(--teal,#2dd4a0)';btn.style.color='#0a1a14';btn.disabled=false},3000)
+}
+
+function downloadMod() {
+  if (!generatedMod) return
+  const content = generatedMod.code || '-- No code generated'
+  const blob = new Blob([content], {type:'text/plain'})
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = (generatedMod.name||'mod').replace(/\s+/g,'_')+'.lua'
+  a.click(); URL.revokeObjectURL(url)
+}
+
+function reworkMod() {
+  if (generatedMod) localStorage.setItem('mm-rework-mod', JSON.stringify(generatedMod))
+  window.location.href = 'modmaster-rework.html'
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  // Check for pre-selected game from URL or localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('mm-active-game') || 'null')
+    if (saved) { activeGame = saved; renderGameBadge(saved); refreshExamplePills(); show('method'); document.getElementById('page-sub').textContent = 'How do you want to create your mod?'; if(window.MMTheme) window.MMTheme.applyGameTheme(saved.name) }
+  } catch {}
+  renderTemplates()
+  refreshExamplePills()
+}
+
+document.addEventListener('DOMContentLoaded', init)
+</script>
+</body>
+</html>

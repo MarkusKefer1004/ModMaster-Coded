@@ -1,0 +1,4 @@
+electron/
+node_modules/
+*.tmp
+update-results.json

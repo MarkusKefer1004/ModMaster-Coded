@@ -1,0 +1,6 @@
+{
+  "name": "modmaster",
+  "version": "2.0.0",
+  "description": "ModMaster — Universal Mod Platform",
+  "main": "main.js"
+}

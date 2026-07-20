@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModMaster — Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+#titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
+#titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-controls{display:flex;-webkit-app-region:no-drag;}
+.tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+#tb-close:hover{background:#c42b2b;color:#fff;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;max-width:700px;margin:0 auto;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.3s ease forwards;}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+.section{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;}
+.section-header{padding:0.875rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;}
+.section-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.section-title{font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text);}
+.section-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.section-body{padding:1.1rem 1.25rem;}
+.field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;display:block;margin-bottom:6px;}
+.field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.field-input{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color 0.2s;}
+.field-input:focus{border-color:var(--teal,#2dd4a0);}
+.field-input::placeholder{color:var(--muted);}
+.row{display:flex;gap:8px;align-items:center;}
+.row .field-input{flex:1;}
+.save-btn{padding:9px 16px;border-radius:9px;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;flex-shrink:0;background:var(--teal,#2dd4a0);color:#0a1a14;}
+.save-btn:hover{opacity:0.85;}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:3px 8px;border-radius:4px;margin-left:auto;}
+/* Theme grid */
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.theme-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:9px;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;}
+.theme-card.active{border-color:var(--teal,#2dd4a0);background:rgba(45,212,160,0.08);}
+.theme-card:hover{border-color:var(--border-hi);}
+.theme-preview{width:100%;height:32px;border-radius:6px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.theme-dot{width:7px;height:7px;border-radius:50%;}
+.theme-name{font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text);}
+/* Accent grid */
+.accent-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem;}
+.accent-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:9px;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;}
+.accent-card.active{border-width:1.5px;}
+.accent-card:hover{border-color:var(--border-hi);}
+.accent-swatch{height:22px;border-radius:6px;margin-bottom:5px;}
+.accent-name{font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);}
+/* Publisher grid */
+.pub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.pub-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:9px;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;}
+.pub-card.active{border-color:var(--teal,#2dd4a0);}
+.pub-card:hover{border-color:var(--border-hi);}
+.pub-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text);}
+.pub-name{font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);}
+/* Sliders */
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.slider-label{font-size:12px;color:var(--text);min-width:80px;}
+input[type=range]{flex:1;accent-color:var(--teal,#2dd4a0);}
+.slider-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);min-width:36px;text-align:right;}
+/* Update log */
+.update-log{background:var(--bg);border:0.5px solid var(--border);border-radius:9px;padding:0.875rem;font-family:'DM Mono',monospace;font-size:11px;line-height:1.9;max-height:180px;overflow-y:auto;margin-top:10px;display:none;}
+.log-ok{color:var(--teal,#2dd4a0);}
+.log-fail{color:var(--coral,#f07050);}
+.log-info{color:var(--muted);}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
+  <div id="titlebar-controls">
+    <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
+    <button class="tb-btn" onclick="window.MM?.close()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="mm-main-content">
+  <button class="back-btn fade-up" onclick="window.location.href='modmaster.html'">← Back to home</button>
+  <div class="page-title fade-up" style="animation-delay:0.05s;opacity:0;">Settings</div>
+  <div class="page-sub fade-up" style="animation-delay:0.08s;opacity:0;">API key, appearance, updates and more.</div>
+
+  <!-- API Key -->
+  <div class="section fade-up" style="animation-delay:0.1s;opacity:0;">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(45,212,160,0.1);">🔑</div>
+      <div><div class="section-title">Anthropic API key</div><div class="section-sub">Required for AI mod generation and fixing</div></div>
+      <span class="status-pill" id="key-status" style="background:var(--bg3);color:var(--muted);">Not set</span>
+    </div>
+    <div class="section-body">
+      <label class="field-label">Your API key</label>
+      <div class="row">
+        <input class="field-input" type="password" id="api-key-input" placeholder="sk-ant-api03-...">
+        <button class="save-btn" onclick="saveApiKey()">Save</button>
+      </div>
+      <div class="field-hint">Get a free key at <a href="#" onclick="openLink('https://console.anthropic.com');return false;" style="color:var(--teal,#2dd4a0);">console.anthropic.com</a> → API Keys → Create Key. Stored locally on this PC only.</div>
+    </div>
+  </div>
+
+  <!-- Appearance -->
+  <div class="section fade-up" style="animation-delay:0.12s;opacity:0;">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(139,124,239,0.1);">🎨</div>
+      <div><div class="section-title">Appearance</div><div class="section-sub">Theme, accent colours and background</div></div>
+    </div>
+    <div class="section-body">
+      <label class="field-label">Mode</label>
+      <div class="theme-grid" id="mode-grid"></div>
+      <label class="field-label">Accent colour</label>
+      <div class="accent-grid" id="accent-grid"></div>
+      <label class="field-label">Publisher theme (auto-switches when selecting a game)</label>
+      <div class="pub-grid" id="pub-grid"></div>
+      <label class="field-label">Custom background image</label>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+        <input class="field-input" type="text" id="bg-url" placeholder="Paste image URL or click Browse" style="flex:1;">
+        <button class="save-btn" style="background:var(--bg3);color:var(--muted);border:0.5px solid var(--border);" onclick="browseBg()">Browse</button>
+        <button class="save-btn" onclick="applyBg()">Apply</button>
+      </div>
+      <label class="field-label">Background opacity &amp; blur</label>
+      <div class="slider-row">
+        <span class="slider-label">Opacity</span>
+        <input type="range" id="bg-opacity" min="0" max="1" step="0.05" value="0.15" oninput="updateBgSliders()">
+        <span class="slider-val" id="opacity-val">15%</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Blur</span>
+        <input type="range" id="bg-blur" min="0" max="20" step="1" value="0" oninput="updateBgSliders()">
+        <span class="slider-val" id="blur-val">0px</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Updates -->
+  <div class="section fade-up" style="animation-delay:0.14s;opacity:0;">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(45,212,160,0.1);">⬆️</div>
+      <div><div class="section-title">Updates</div><div class="section-sub">Auto-update from GitHub</div></div>
+      <span class="status-pill" id="update-badge" style="background:var(--bg3);color:var(--muted);display:none;"></span>
+    </div>
+    <div class="section-body">
+      <label class="field-label">GitHub repository URL</label>
+      <div class="row" style="margin-bottom:8px;">
+        <input class="field-input" type="text" id="repo-url" placeholder="https://ghp_token@github.com/YourName/ModMaster">
+        <button class="save-btn" onclick="saveRepoUrl()">Save</button>
+      </div>
+      <div class="field-hint" style="margin-bottom:1rem;">For private repos include your token: https://ghp_yourtoken@github.com/User/Repo</div>
+      <button id="update-btn" onclick="startUpdate()" style="width:100%;padding:11px;border-radius:9px;background:var(--teal,#2dd4a0);color:#0a1a14;border:none;font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        ⬆ Update and restart
+      </button>
+      <div class="update-log" id="update-log"></div>
+      <button id="restart-btn" onclick="window.MM?.close()" style="display:none;margin-top:10px;width:100%;padding:10px;border-radius:9px;background:rgba(74,222,128,0.12);color:var(--green,#4ade80);border:0.5px solid rgba(74,222,128,0.3);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;">✓ Done — click to close app and restart manually</button>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="section fade-up" style="animation-delay:0.16s;opacity:0;">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(245,166,35,0.1);">ℹ️</div>
+      <div><div class="section-title">About ModMaster</div><div class="section-sub">Version 2.0</div></div>
+    </div>
+    <div class="section-body">
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;">Universal mod platform powered by AI. Create, update, rework and discover mods for any game — no coding needed.</div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--muted);">
+        <span>ModMaster v2.0</span>
+        <button onclick="MM_Tutorial?.start()" style="background:none;border:none;color:var(--teal,#2dd4a0);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;">Show tutorial again</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="electron-bridge.js"></script>
+<script src="tutorial.js"></script>
+<script>
+// ── API Key ───────────────────────────────────────────────────────────────
+async function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim()
+  if (!k) { alert('Please paste your API key first.'); return }
+  if (!k.startsWith('sk-ant-')) { alert('That doesn\'t look right — key should start with sk-ant-'); return }
+  if (window.MM) await window.MM.setApiKey(k)
+  else localStorage.setItem('mm-api-key', k)
+  const s = document.getElementById('key-status')
+  s.style.background = 'rgba(74,222,128,0.1)'; s.style.color = 'var(--green,#4ade80)'; s.textContent = '✓ Saved'
+}
+
+async function loadApiKey() {
+  const k = window.MM ? await window.MM.getApiKey() : localStorage.getItem('mm-api-key') || ''
+  const s = document.getElementById('key-status')
+  if (k) {
+    document.getElementById('api-key-input').value = k
+    s.style.background = 'rgba(74,222,128,0.1)'; s.style.color = 'var(--green,#4ade80)'; s.textContent = '✓ Saved'
+  } else {
+    s.style.background = 'rgba(240,80,80,0.1)'; s.style.color = 'var(--coral,#f07050)'; s.textContent = 'Not set'
+  }
+}
+
+// ── Repo URL ──────────────────────────────────────────────────────────────
+async function saveRepoUrl() {
+  const url = document.getElementById('repo-url').value.trim()
+  if (!url) { alert('Please paste your GitHub repo URL first.'); return }
+  if (window.MM) await window.MM.setRepoUrl(url)
+  else localStorage.setItem('mm-repo-url', url)
+  const b = document.getElementById('update-badge')
+  b.style.display = 'inline-flex'; b.style.background = 'rgba(74,222,128,0.1)'; b.style.color = 'var(--green,#4ade80)'; b.textContent = '✓ Saved'
+}
+
+async function loadRepoUrl() {
+  const url = window.MM ? await window.MM.getRepoUrl() : localStorage.getItem('mm-repo-url') || ''
+  if (url) document.getElementById('repo-url').value = url
+}
+
+// ── Update ────────────────────────────────────────────────────────────────
+async function startUpdate() {
+  const url = document.getElementById('repo-url').value.trim()
+  if (!url) { alert('Please save your GitHub URL first.'); return }
+  if (!window.MM) { alert('Update only works in the desktop app.'); return }
+  const btn = document.getElementById('update-btn')
+  btn.disabled = true
+  btn.innerHTML = '<div class="spinner"></div> Closing to update...'
+  document.getElementById('update-log').style.display = 'block'
+  addLog('Starting update...', 'info')
+  setTimeout(async () => {
+    const r = await window.MM.updateAndRestart({ repoUrl: url })
+    if (!r.success) {
+      btn.disabled = false; btn.innerHTML = '⬆ Update and restart'
+      addLog('Error: ' + (r.error || 'Unknown error'), 'fail')
+    }
+  }, 600)
+}
+
+function addLog(msg, type) {
+  const log = document.getElementById('update-log')
+  const cls = type === 'ok' ? 'log-ok' : type === 'fail' ? 'log-fail' : 'log-info'
+  log.innerHTML += `<div class="${cls}">${msg}</div>`
+  log.scrollTop = log.scrollHeight
+}
+
+// ── Themes ────────────────────────────────────────────────────────────────
+const MODES = [
+  { id:'dark',     label:'Dark',     bg:'#0d0f12', dots:['#2dd4a0','#8b7cef','#f07050'] },
+  { id:'light',    label:'Light',    bg:'#f0f2f5', dots:['#2dd4a0','#8b7cef','#f07050'] },
+  { id:'midnight', label:'Midnight', bg:'#050814', dots:['#8090ff','#a0b0ff','#6070ff'] },
+  { id:'forest',   label:'Forest',   bg:'#080f0a', dots:['#4ade80','#2dd4a0','#80e060'] },
+]
+const ACCENTS = [
+  { id:'default', label:'Default', colors:['#2dd4a0','#8b7cef','#f07050'] },
+  { id:'blue',    label:'Blue',    colors:['#60a0f0','#9070f0','#50b0ff'] },
+  { id:'green',   label:'Green',   colors:['#4ade80','#2dd4a0','#80e060'] },
+  { id:'red',     label:'Red',     colors:['#f07050','#e04060','#ff6040'] },
+  { id:'gold',    label:'Gold',    colors:['#f5a623','#e8c040','#f08030'] },
+]
+
+function renderModes() {
+  const cur = window.MMTheme?.mode || 'dark'
+  document.getElementById('mode-grid').innerHTML = MODES.map(m => `
+    <div class="theme-card ${m.id===cur?'active':''}" onclick="setMode('${m.id}')">
+      <div class="theme-preview" style="background:${m.bg};">${m.dots.map(c=>`<div class="theme-dot" style="background:${c};"></div>`).join('')}</div>
+      <div class="theme-name">${m.label}</div>
+    </div>`).join('')
+}
+
+function renderAccents() {
+  const cur = window.MMTheme?.accent || 'default'
+  document.getElementById('accent-grid').innerHTML = ACCENTS.map(a => `
+    <div class="accent-card ${a.id===cur?'active':''}" onclick="setAccent('${a.id}')" style="${a.id===cur?'border-color:'+a.colors[0]+';':''}">
+      <div class="accent-swatch" style="background:linear-gradient(135deg,${a.colors[0]},${a.colors[1]});"></div>
+      <div class="accent-name">${a.label}</div>
+    </div>`).join('')
+}
+
+function renderPublishers() {
+  const cur = window.MMTheme?.publisher || null
+  const pubs = window.MMTheme?.PUBLISHERS || {}
+  document.getElementById('pub-grid').innerHTML = Object.entries(pubs).map(([id,p]) => `
+    <div class="pub-card ${id===cur?'active':''}" onclick="setPublisher('${id}')" style="${id===cur?'border-color:var(--teal,#2dd4a0);':''}">
+      <div class="pub-logo">${p.logo||'?'}</div>
+      <div class="pub-name">${p.label}</div>
+    </div>`).join('')
+}
+
+function setMode(m) {
+  window.MMTheme?.apply({ ...window.MMTheme, mode:m })
+  renderModes(); renderAccents(); renderPublishers()
+}
+function setAccent(a) {
+  window.MMTheme?.apply({ ...window.MMTheme, accent:a })
+  renderModes(); renderAccents(); renderPublishers()
+}
+function setPublisher(p) {
+  window.MMTheme?.apply({ ...window.MMTheme, publisher: p==='none' ? null : p })
+  renderModes(); renderAccents(); renderPublishers()
+}
+
+// ── Background ────────────────────────────────────────────────────────────
+async function browseBg() {
+  if (window.MM) {
+    const folder = await window.MM.browseFolder()
+    if (folder) document.getElementById('bg-url').value = folder
+  }
+}
+
+function applyBg() {
+  const src     = document.getElementById('bg-url').value.trim() || null
+  const opacity = parseFloat(document.getElementById('bg-opacity').value)
+  const blur    = parseInt(document.getElementById('bg-blur').value)
+  window.MMTheme?.apply({ ...window.MMTheme, bgSrc:src, bgOpacity:opacity, bgBlur:blur })
+}
+
+function updateBgSliders() {
+  const op = document.getElementById('bg-opacity').value
+  const bl = document.getElementById('bg-blur').value
+  document.getElementById('opacity-val').textContent = Math.round(op*100)+'%'
+  document.getElementById('blur-val').textContent    = bl+'px'
+  applyBg()
+}
+
+// ── Load saved bg sliders ─────────────────────────────────────────────────
+function loadBgSliders() {
+  const saved = JSON.parse(localStorage.getItem('mm-theme')||'{}')
+  if (saved.bgOpacity !== undefined) {
+    document.getElementById('bg-opacity').value = saved.bgOpacity
+    document.getElementById('opacity-val').textContent = Math.round(saved.bgOpacity*100)+'%'
+  }
+  if (saved.bgBlur !== undefined) {
+    document.getElementById('bg-blur').value = saved.bgBlur
+    document.getElementById('blur-val').textContent = saved.bgBlur+'px'
+  }
+  if (saved.bgSrc) document.getElementById('bg-url').value = saved.bgSrc
+}
+
+function openLink(url) {
+  if (window.MM) shell?.openExternal?.(url); else window.open(url,'_blank')
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  await loadApiKey()
+  await loadRepoUrl()
+  renderModes()
+  renderAccents()
+  renderPublishers()
+  loadBgSliders()
+}
+
+document.addEventListener('DOMContentLoaded', init)
+</script>
+</body>
+</html>
