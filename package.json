@@ -1,0 +1,44 @@
+{
+  "name": "modmaster",
+  "productName": "ModMaster",
+  "version": "2.0.0",
+  "description": "ModMaster — Universal Mod Platform. Create, fix, rework and manage game mods without coding.",
+  "author": "ModMaster",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.modmaster.app",
+    "productName": "ModMaster",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "!app/renderer/_preview-server.js"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "ModMaster"
+    },
+    "portable": {
+      "artifactName": "ModMaster-Portable-${version}.exe"
+    }
+  }
+}

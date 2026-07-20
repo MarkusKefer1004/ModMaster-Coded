@@ -4,3 +4,4 @@ node_modules/
 update-results.json
 .env
 server/.env
+dist/
