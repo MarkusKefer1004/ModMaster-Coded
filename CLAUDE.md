@@ -16,8 +16,8 @@ A Windows desktop app (Electron v28) that lets casual gamers create, fix, rework
 | 1 | App shell + game detection | ✅ Done |
 | 2 | Create Mods (AI + templates + textures) | ✅ Done |
 | 3 | Update Mods + Steam Workshop tab | ✅ Done |
-| 4 | Rework Mods | ⏳ **Build this next** |
-| 5 | Tool Installer (UE4SS etc.) | ⏳ Pending |
+| 4 | Rework Mods | ✅ Done (UI shell + demo values; real mod-file parsing pending) |
+| 5 | Tool Installer (UE4SS etc.) | ⏳ **Build this next** |
 | 6 | User accounts | ⏳ Pending |
 | 7 | Community Hub | ⏳ Pending |
 | 8 | AI proxy + payments | ⏳ Pending |
