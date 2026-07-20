@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModMaster — Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--acct:#6aa0f0;--acct-dim:rgba(106,160,240,0.12);}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
+#titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
+#titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--acct));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-controls{display:flex;-webkit-app-region:no-drag;}
+.tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+#tb-close:hover{background:#c42b2b;color:#fff;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--acct));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+.panel{display:none;}
+.panel.active{display:block;}
+/* auth card */
+.auth-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.75rem;max-width:420px;}
+.tabs{display:flex;gap:4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:4px;margin-bottom:1.25rem;}
+.tab{flex:1;padding:8px;border:none;background:none;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:7px;cursor:pointer;transition:all 0.2s;}
+.tab.active{background:var(--acct);color:#08111f;}
+.field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:6px;display:block;}
+.field{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;padding:11px 12px;outline:none;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.field:focus{border-color:var(--acct);}
+.avatar-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
+.av-opt{width:38px;height:38px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;}
+.av-opt:hover{border-color:var(--border-hi);}
+.av-opt.sel{border-color:var(--acct);box-shadow:0 0 0 2px var(--acct-dim);}
+.primary-btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:var(--acct);color:#08111f;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.primary-btn:hover{opacity:0.9;}
+.err{color:var(--coral,#f07050);font-size:12px;margin-bottom:0.75rem;min-height:16px;}
+.muted-line{font-size:12px;color:var(--muted);text-align:center;margin-top:1rem;line-height:1.6;}
+.link{color:var(--acct);cursor:pointer;font-weight:600;}
+.link:hover{text-decoration:underline;}
+.note{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:10px;font-size:12px;line-height:1.55;margin-top:1.25rem;background:var(--acct-dim);border:0.5px solid rgba(106,160,240,0.25);color:var(--acct);max-width:420px;}
+.note b{color:var(--text);}
+/* profile */
+.profile-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;border-top:2px solid var(--acct);padding:1.75rem;max-width:460px;}
+.prof-head{display:flex;align-items:center;gap:16px;margin-bottom:1.25rem;}
+.prof-avatar{width:64px;height:64px;border-radius:50%;background:var(--acct-dim);border:1px solid rgba(106,160,240,0.35);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;cursor:pointer;position:relative;}
+.prof-avatar:hover::after{content:'✎';position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:var(--acct);color:#08111f;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.prof-name{font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text);background:none;border:none;border-bottom:1px dashed transparent;outline:none;width:100%;}
+.prof-name:focus{border-bottom-color:var(--acct);}
+.prof-email{font-size:12.5px;color:var(--muted);font-family:'DM Mono',monospace;}
+.plan-badge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:3px 10px;border-radius:99px;background:var(--acct-dim);color:var(--acct);margin-top:6px;}
+.stat-row{display:flex;gap:10px;margin:1.25rem 0;}
+.stat{flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:11px;padding:12px;text-align:center;}
+.stat-num{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-top:2px;}
+.benefits{list-style:none;margin:0.5rem 0 0;}
+.benefit{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);padding:5px 0;}
+.benefit .soon{margin-left:auto;font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--amber,#f5a623);background:rgba(245,166,35,0.1);padding:2px 7px;border-radius:99px;}
+.btn-row{display:flex;gap:8px;margin-top:1.5rem;}
+.ghost-btn{flex:1;padding:11px;border-radius:10px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.ghost-btn:hover{border-color:var(--border-hi);}
+.danger-btn{color:var(--coral,#f07050);border-color:rgba(240,112,80,0.3);}
+.danger-btn:hover{background:var(--coral,#f07050);color:#fff;border-color:transparent;}
+/* avatar overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;display:none;align-items:center;justify-content:center;padding:2rem;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg2);border:0.5px solid var(--border-hi);border-radius:16px;padding:1.5rem;max-width:340px;width:100%;}
+.modal h3{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:1rem;}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
+  <div id="titlebar-controls">
+    <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="mm-main-content">
+  <button class="back-btn" onclick="goBack()">← Back</button>
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Account</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Sign in to sync your setup — or keep using ModMaster locally.</div>
+
+  <!-- Signed out: sign in / sign up -->
+  <div id="step-auth" class="panel active">
+    <div class="auth-card">
+      <div class="tabs">
+        <button class="tab active" id="tab-signin" onclick="setMode('signin')">Sign in</button>
+        <button class="tab" id="tab-signup" onclick="setMode('signup')">Create account</button>
+      </div>
+
+      <div id="signup-only" style="display:none;">
+        <label class="field-label">Display name</label>
+        <input class="field" id="f-name" placeholder="e.g. ModMaster Mike" spellcheck="false">
+        <label class="field-label">Pick an avatar</label>
+        <div class="avatar-row" id="avatar-row"></div>
+      </div>
+
+      <label class="field-label">Email</label>
+      <input class="field" id="f-email" type="email" placeholder="you@example.com" spellcheck="false">
+      <label class="field-label">Password</label>
+      <input class="field" id="f-pass" type="password" placeholder="••••••••">
+
+      <div class="err" id="auth-err"></div>
+      <button class="primary-btn" id="auth-submit" onclick="submitAuth()">Sign in</button>
+
+      <div class="muted-line" id="switch-line">New here? <span class="link" onclick="setMode('signup')">Create an account</span></div>
+    </div>
+
+    <div class="note"><span>ℹ</span><span><b>Local for now.</b> Your account lives on this PC. Cloud sign-in that syncs your mods, settings and favourites across PCs arrives with ModMaster's online features.</span></div>
+  </div>
+
+  <!-- Signed in: profile -->
+  <div id="step-profile" class="panel">
+    <div class="profile-card">
+      <div class="prof-head">
+        <div class="prof-avatar" id="prof-avatar" onclick="openAvatar()">🎮</div>
+        <div style="flex:1;min-width:0;">
+          <input class="prof-name" id="prof-name" spellcheck="false" onchange="onNameEdit()">
+          <div class="prof-email" id="prof-email">you@example.com</div>
+          <div class="plan-badge" id="prof-plan">Free plan</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num" id="stat-favs">0</div><div class="stat-lbl">Favourites</div></div>
+        <div class="stat"><div class="stat-num" id="stat-since">—</div><div class="stat-lbl">Member since</div></div>
+        <div class="stat"><div class="stat-num" id="stat-games">0</div><div class="stat-lbl">Games</div></div>
+      </div>
+
+      <div class="field-label">What an account unlocks</div>
+      <ul class="benefits">
+        <li class="benefit"><span>💾</span> Local profile & settings <span class="soon" style="color:var(--green,#4ade80);background:rgba(74,222,128,0.1);">Active</span></li>
+        <li class="benefit"><span>☁️</span> Sync mods & settings across PCs <span class="soon">Soon</span></li>
+        <li class="benefit"><span>🌐</span> Community Hub — share & download mods <span class="soon">Soon</span></li>
+        <li class="benefit"><span>🛟</span> Cloud backups of your reworks <span class="soon">Soon</span></li>
+      </ul>
+
+      <div class="btn-row">
+        <button class="ghost-btn" onclick="window.location.href='modmaster-settings.html'">⚙️ Settings</button>
+        <button class="ghost-btn danger-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- avatar picker overlay -->
+<div class="overlay" id="avatar-overlay">
+  <div class="modal">
+    <h3>Choose your avatar</h3>
+    <div class="avatar-row" id="avatar-row-edit"></div>
+  </div>
+</div>
+
+<script src="electron-bridge.js"></script>
+<script>
+const AVATARS = ['🎮','👾','🕹️','🦾','🐉','🚀','🧙','🦊','🐺','🤖','👑','🔥']
+let mode = 'signin'
+let account = null
+let pickedAvatar = AVATARS[0]
+
+function goBack(){ window.location.href='modmaster.html' }
+function show(s){ ['auth','profile'].forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+
+// ── Persistence ────────────────────────────────────────────────────────────────
+async function loadAccount(){
+  let acc=null
+  try{ acc=JSON.parse(localStorage.getItem('mm-account')||'null') }catch{}
+  if(window.MM){ try{ const s=await window.MM.getSettings(); if(s&&s.account) acc=s.account }catch{} }
+  return acc
+}
+async function saveAccount(acc){
+  account=acc
+  try{ localStorage.setItem('mm-account', JSON.stringify(acc)) }catch{}
+  if(window.MM){ try{ await window.MM.setSettings({account:acc}) }catch{} }
+}
+async function clearAccount(){
+  account=null
+  try{ localStorage.removeItem('mm-account') }catch{}
+  if(window.MM){ try{ await window.MM.setSettings({account:null}) }catch{} }
+}
+
+// ── Auth (sign in / sign up) ────────────────────────────────────────────────────
+function setMode(m){
+  mode=m
+  document.getElementById('tab-signin').classList.toggle('active',m==='signin')
+  document.getElementById('tab-signup').classList.toggle('active',m==='signup')
+  document.getElementById('signup-only').style.display = m==='signup'?'block':'none'
+  document.getElementById('auth-submit').textContent = m==='signup'?'Create account':'Sign in'
+  document.getElementById('switch-line').innerHTML = m==='signup'
+    ? 'Already have an account? <span class="link" onclick="setMode(\'signin\')">Sign in</span>'
+    : 'New here? <span class="link" onclick="setMode(\'signup\')">Create an account</span>'
+  document.getElementById('auth-err').textContent=''
+}
+function renderAvatarPicker(){
+  document.getElementById('avatar-row').innerHTML = AVATARS.map(a=>
+    `<div class="av-opt ${a===pickedAvatar?'sel':''}" onclick="pickAvatar('${a}')">${a}</div>`).join('')
+}
+function pickAvatar(a){ pickedAvatar=a; renderAvatarPicker() }
+
+function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) }
+
+async function submitAuth(){
+  const email=document.getElementById('f-email').value.trim()
+  const pass=document.getElementById('f-pass').value
+  const err=document.getElementById('auth-err')
+  if(!validEmail(email)){ err.textContent='Please enter a valid email address.'; return }
+  if(pass.length<4){ err.textContent='Password must be at least 4 characters.'; return }
+
+  let name
+  if(mode==='signup'){
+    name=document.getElementById('f-name').value.trim()
+    if(!name){ err.textContent='Please enter a display name.'; return }
+  } else {
+    // Demo sign-in: reuse existing local profile if the email matches, else derive a name
+    const existing = account && account.email===email ? account : null
+    name = existing ? existing.name : email.split('@')[0].replace(/\b\w/g,c=>c.toUpperCase())
+    if(existing) pickedAvatar = existing.avatar || pickedAvatar
+  }
+
+  const btn=document.getElementById('auth-submit')
+  btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:13px;height:13px;"></div>'
+  await new Promise(r=>setTimeout(r,600))   // simulate request (local-only for now)
+
+  const acc = {
+    name, email, avatar: pickedAvatar, plan: (account&&account.plan)||'Free',
+    createdAt: (account&&account.email===email&&account.createdAt) || new Date().toISOString(),
+  }
+  await saveAccount(acc)
+  renderProfile()
+  show('profile')
+}
+
+// ── Profile ─────────────────────────────────────────────────────────────────────
+function sinceLabel(iso){
+  try{ const d=new Date(iso); const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return M[d.getMonth()]+' '+d.getFullYear() }catch{ return '—' }
+}
+async function renderProfile(){
+  if(!account) return
+  document.getElementById('prof-avatar').textContent=account.avatar||'🎮'
+  document.getElementById('prof-name').value=account.name||'Modder'
+  document.getElementById('prof-email').textContent=account.email||''
+  document.getElementById('prof-plan').textContent=(account.plan||'Free')+' plan'
+  document.getElementById('stat-since').textContent=sinceLabel(account.createdAt)
+  document.getElementById('page-sub').textContent='Signed in as '+(account.name||account.email)+'.'
+  // Local stats (favourites / games)
+  let favs=[], games=0
+  try{ favs = window.MM ? await window.MM.getFavourites() : JSON.parse(localStorage.getItem('mm-favs')||'[]') }catch{}
+  try{ games = (window._MMGames||JSON.parse(localStorage.getItem('mm-games')||'[]')).length||0 }catch{}
+  document.getElementById('stat-favs').textContent=(favs&&favs.length)||0
+  document.getElementById('stat-games').textContent=games||0
+}
+async function onNameEdit(){
+  const v=document.getElementById('prof-name').value.trim()
+  if(!v||!account) return
+  account.name=v; await saveAccount(account)
+  document.getElementById('page-sub').textContent='Signed in as '+v+'.'
+}
+function openAvatar(){
+  document.getElementById('avatar-row-edit').innerHTML = AVATARS.map(a=>
+    `<div class="av-opt ${account&&a===account.avatar?'sel':''}" onclick="setAvatar('${a}')">${a}</div>`).join('')
+  document.getElementById('avatar-overlay').classList.add('open')
+}
+async function setAvatar(a){
+  if(account){ account.avatar=a; await saveAccount(account); document.getElementById('prof-avatar').textContent=a }
+  document.getElementById('avatar-overlay').classList.remove('open')
+}
+async function signOut(){
+  await clearAccount()
+  document.getElementById('f-email').value=''
+  document.getElementById('f-pass').value=''
+  document.getElementById('page-sub').textContent='Sign in to sync your setup — or keep using ModMaster locally.'
+  setMode('signin'); show('auth')
+}
+
+document.getElementById('avatar-overlay').addEventListener('click', e=>{ if(e.target.id==='avatar-overlay') e.currentTarget.classList.remove('open') })
+
+// ── Init ─────────────────────────────────────────────────────────────────────────
+async function init(){
+  pickedAvatar=AVATARS[0]; renderAvatarPicker()
+  account = await loadAccount()
+  if(account){ renderProfile(); show('profile') } else { setMode('signin'); show('auth') }
+}
+document.addEventListener('DOMContentLoaded', init)
+</script>
+</body>
+</html>

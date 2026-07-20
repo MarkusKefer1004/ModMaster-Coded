@@ -471,6 +471,8 @@ ipcMain.handle('update-and-restart', async (e, {repoUrl}) => {
       {repo:'app/renderer/modmaster-create.html',   local:path.join(__dirname,'renderer','modmaster-create.html')},
       {repo:'app/renderer/modmaster-update.html',   local:path.join(__dirname,'renderer','modmaster-update.html')},
       {repo:'app/renderer/modmaster-rework.html',   local:path.join(__dirname,'renderer','modmaster-rework.html')},
+      {repo:'app/renderer/modmaster-tools.html',    local:path.join(__dirname,'renderer','modmaster-tools.html')},
+      {repo:'app/renderer/modmaster-account.html',  local:path.join(__dirname,'renderer','modmaster-account.html')},
       {repo:'app/renderer/modmaster-hub.html',      local:path.join(__dirname,'renderer','modmaster-hub.html')},
       {repo:'app/renderer/modmaster-settings.html', local:path.join(__dirname,'renderer','modmaster-settings.html')},
       {repo:'app/renderer/sidebar.js',              local:path.join(__dirname,'renderer','sidebar.js')},

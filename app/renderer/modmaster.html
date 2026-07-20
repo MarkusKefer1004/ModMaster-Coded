@@ -112,6 +112,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <p>Universal mod platform — what do you want to do today?</p>
     </div>
     <div style="display:flex;gap:8px;">
+      <button id="account-btn" onclick="window.location.href='modmaster-account.html'" style="background:var(--bg2);border:0.5px solid var(--border);border-radius:9px;padding:7px 14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--border-hi)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+        👤 Sign in
+      </button>
       <button id="settings-btn" onclick="window.location.href='modmaster-settings.html'" style="background:var(--bg2);border:0.5px solid var(--border);border-radius:9px;padding:7px 14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--border-hi)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
         ⚙️ Settings
       </button>
@@ -303,6 +306,17 @@ async function checkForUpdate() {
 
 function goToSettings() { window.location.href = 'modmaster-settings.html' }
 
+// ── Account button (reflects local sign-in state) ──────────────────────────
+function renderAccountBtn() {
+  const btn = document.getElementById('account-btn')
+  if (!btn) return
+  let acc = null
+  try { acc = JSON.parse(localStorage.getItem('mm-account') || 'null') } catch {}
+  btn.innerHTML = acc
+    ? `<span style="font-size:14px;">${acc.avatar || '👤'}</span> ${acc.name || 'Account'}`
+    : '👤 Sign in'
+}
+
 // ── Outdated mod badge on Update card ─────────────────────────────────────
 function checkOutdatedMods() {
   // Placeholder — will be wired when Update Mods screen is built
@@ -310,6 +324,7 @@ function checkOutdatedMods() {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
+  renderAccountBtn()
   await loadFavourites()
   await scanGames(true)
   checkForUpdate()
