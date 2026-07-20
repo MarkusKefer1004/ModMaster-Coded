@@ -1,0 +1,12 @@
+{
+  "name": "modmaster-ai-proxy",
+  "version": "1.0.0",
+  "description": "Reference AI proxy for ModMaster — holds the Anthropic key server-side so users need no key of their own.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

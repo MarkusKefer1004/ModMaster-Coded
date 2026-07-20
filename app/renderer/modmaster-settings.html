@@ -95,7 +95,7 @@ input[type=range]{flex:1;accent-color:var(--teal,#2dd4a0);}
   <div class="section fade-up" style="animation-delay:0.1s;opacity:0;">
     <div class="section-header">
       <div class="section-icon" style="background:rgba(45,212,160,0.1);">🔑</div>
-      <div><div class="section-title">Anthropic API key</div><div class="section-sub">Required for AI mod generation and fixing</div></div>
+      <div><div class="section-title">Anthropic API key</div><div class="section-sub">Optional — only used if no AI proxy is set below</div></div>
       <span class="status-pill" id="key-status" style="background:var(--bg3);color:var(--muted);">Not set</span>
     </div>
     <div class="section-body">
@@ -105,6 +105,25 @@ input[type=range]{flex:1;accent-color:var(--teal,#2dd4a0);}
         <button class="save-btn" onclick="saveApiKey()">Save</button>
       </div>
       <div class="field-hint">Get a free key at <a href="#" onclick="openLink('https://console.anthropic.com');return false;" style="color:var(--teal,#2dd4a0);">console.anthropic.com</a> → API Keys → Create Key. Stored locally on this PC only.</div>
+    </div>
+  </div>
+
+  <!-- AI connection (proxy) -->
+  <div class="section fade-up" style="animation-delay:0.11s;opacity:0;">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(106,160,240,0.1);">🔌</div>
+      <div><div class="section-title">AI connection</div><div class="section-sub">Recommended: use a proxy so no personal key is needed</div></div>
+      <span class="status-pill" id="proxy-status" style="background:var(--bg3);color:var(--muted);">Own key</span>
+    </div>
+    <div class="section-body">
+      <label class="field-label">Proxy URL</label>
+      <div class="row">
+        <input class="field-input" type="text" id="proxy-url" placeholder="https://your-proxy.onrender.com">
+        <button class="save-btn" onclick="saveAiProxy()">Save</button>
+      </div>
+      <label class="field-label" style="margin-top:10px;">App token (optional)</label>
+      <input class="field-input" type="password" id="proxy-token" placeholder="only if your proxy sets MM_APP_TOKEN">
+      <div class="field-hint">When a proxy is set, AI works with <b>no personal key</b> — the key lives on your server. Deploy the reference server in <span style="font-family:'DM Mono',monospace;color:var(--text);">server/</span> (see its README). Leave blank to use your own key above.</div>
     </div>
   </div>
 
@@ -202,6 +221,31 @@ async function loadApiKey() {
     s.style.background = 'rgba(74,222,128,0.1)'; s.style.color = 'var(--green,#4ade80)'; s.textContent = '✓ Saved'
   } else {
     s.style.background = 'rgba(240,80,80,0.1)'; s.style.color = 'var(--coral,#f07050)'; s.textContent = 'Not set'
+  }
+}
+
+// ── AI proxy ──────────────────────────────────────────────────────────────
+function setProxyStatus(active) {
+  const s = document.getElementById('proxy-status')
+  if (!s) return
+  if (active) { s.style.background = 'rgba(74,222,128,0.1)'; s.style.color = 'var(--green,#4ade80)'; s.textContent = '✓ Proxy active' }
+  else { s.style.background = 'var(--bg3)'; s.style.color = 'var(--muted)'; s.textContent = 'Own key' }
+}
+async function saveAiProxy() {
+  const url = document.getElementById('proxy-url').value.trim()
+  const token = document.getElementById('proxy-token').value.trim()
+  if (url && !/^https?:\/\//i.test(url)) { alert('Proxy URL should start with http:// or https://'); return }
+  if (window.MM) await window.MM.setAiProxy({ url, token })
+  else { localStorage.setItem('mm-ai-proxy', JSON.stringify({ url, token })) }
+  setProxyStatus(!!url)
+}
+async function loadAiProxy() {
+  let p = { url: '', token: '' }
+  try { p = window.MM ? await window.MM.getAiProxy() : (JSON.parse(localStorage.getItem('mm-ai-proxy') || 'null') || p) } catch {}
+  if (document.getElementById('proxy-url')) {
+    document.getElementById('proxy-url').value = p.url || ''
+    document.getElementById('proxy-token').value = p.token || ''
+    setProxyStatus(!!p.url)
   }
 }
 
@@ -346,6 +390,7 @@ function openLink(url) {
 // ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   await loadApiKey()
+  await loadAiProxy()
   await loadRepoUrl()
   renderModes()
   renderAccents()

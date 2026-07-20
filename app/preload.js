@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('MM', {
   setApiKey:   (key)  => ipcRenderer.invoke('set-api-key', key),
   getRepoUrl:      () => ipcRenderer.invoke('get-repo-url'),
   setRepoUrl:  (url)  => ipcRenderer.invoke('set-repo-url', url),
+  getAiProxy:      () => ipcRenderer.invoke('get-ai-proxy'),
+  setAiProxy:  (p)    => ipcRenderer.invoke('set-ai-proxy', p),
   getFavourites:   () => ipcRenderer.invoke('get-favourites'),
   setFavourites: (ids) => ipcRenderer.invoke('set-favourites', ids),
   getSettings:     () => ipcRenderer.invoke('get-settings'),

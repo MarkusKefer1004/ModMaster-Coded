@@ -210,6 +210,14 @@ ipcMain.handle('set-api-key', (e, key) => { const c=loadConfig(); c.apiKey=key.t
 ipcMain.handle('get-repo-url', () => loadConfig().repoUrl || '')
 ipcMain.handle('set-repo-url', (e, url) => { const c=loadConfig(); c.repoUrl=url; saveConfig(c); return true })
 
+// ── AI proxy (key-free AI via your own server; blank = use per-user key) ──────
+ipcMain.handle('get-ai-proxy', () => loadConfig().aiProxy || { url: '', token: '' })
+ipcMain.handle('set-ai-proxy', (e, p) => {
+  const c = loadConfig()
+  c.aiProxy = { url: ((p && p.url) || '').trim(), token: ((p && p.token) || '').trim() }
+  saveConfig(c); return true
+})
+
 // ── Favourite games ──────────────────────────────────────────────────────────
 ipcMain.handle('get-favourites', () => loadConfig().favourites || [])
 ipcMain.handle('set-favourites', (e, ids) => { const c=loadConfig(); c.favourites=ids; saveConfig(c); return true })
@@ -219,23 +227,42 @@ ipcMain.handle('get-settings', () => loadConfig().settings || {})
 ipcMain.handle('set-settings', (e, s) => { const c=loadConfig(); c.settings={...c.settings,...s}; saveConfig(c); return true })
 
 // ── Anthropic API ────────────────────────────────────────────────────────────
-ipcMain.handle('anthropic-request', async (e, body) => {
-  const key = loadConfig().apiKey || ''
-  if (!key) return { error: 'no_api_key', message: 'No API key — go to Settings to add yours.' }
+// POST JSON to any http(s) URL, resolve the parsed JSON (never rejects).
+function postJson(urlStr, payload, extraHeaders) {
   return new Promise((resolve) => {
-    const payload = JSON.stringify(body)
-    const req = https.request({
-      hostname: 'api.anthropic.com', path: '/v1/messages', method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Content-Length':Buffer.byteLength(payload),
-                 'x-api-key':key, 'anthropic-version':'2023-06-01' }
+    let u
+    try { u = new URL(urlStr) } catch { return resolve({ error: 'bad_url', message: 'Invalid URL: ' + urlStr }) }
+    const mod = u.protocol === 'http:' ? http : https
+    const headers = Object.assign({ 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, extraHeaders || {})
+    const req = mod.request({
+      hostname: u.hostname, port: u.port || (u.protocol === 'http:' ? 80 : 443),
+      path: u.pathname + u.search, method: 'POST', headers,
     }, (res) => {
-      let d=''
-      res.on('data', c => d+=c)
-      res.on('end', () => { try { resolve(JSON.parse(d)) } catch { resolve({error:'parse_error'}) } })
+      let d = ''
+      res.on('data', c => d += c)
+      res.on('end', () => { try { resolve(JSON.parse(d)) } catch { resolve({ error: 'parse_error' }) } })
     })
-    req.on('error', err => resolve({error:'network_error',message:err.message}))
+    req.on('error', err => resolve({ error: 'network_error', message: err.message }))
     req.write(payload); req.end()
   })
+}
+
+ipcMain.handle('anthropic-request', async (e, body) => {
+  const cfg = loadConfig()
+  const payload = JSON.stringify(body)
+  const proxy = cfg.aiProxy && cfg.aiProxy.url ? cfg.aiProxy : null
+
+  // Preferred: route through the configured proxy (key lives server-side → users need no key)
+  if (proxy) {
+    const endpoint = proxy.url.replace(/\/+$/, '') + '/api/anthropic'
+    const headers = proxy.token ? { 'x-mm-token': proxy.token } : {}
+    return postJson(endpoint, payload, headers)
+  }
+
+  // Fallback: the user's own key (BYO — power users / no proxy configured)
+  const key = cfg.apiKey || ''
+  if (!key) return { error: 'no_api_key', message: 'No AI connection yet — add a proxy URL or your own API key in Settings.' }
+  return postJson('https://api.anthropic.com/v1/messages', payload, { 'x-api-key': key, 'anthropic-version': '2023-06-01' })
 })
 
 // ── Browse for folder ────────────────────────────────────────────────────────
@@ -507,6 +534,7 @@ ipcMain.handle('update-and-restart', async (e, {repoUrl}) => {
       {repo:'app/renderer/modmaster-rework.html',   local:path.join(__dirname,'renderer','modmaster-rework.html')},
       {repo:'app/renderer/modmaster-tools.html',    local:path.join(__dirname,'renderer','modmaster-tools.html')},
       {repo:'app/renderer/modmaster-account.html',  local:path.join(__dirname,'renderer','modmaster-account.html')},
+      {repo:'app/renderer/modmaster-plans.html',    local:path.join(__dirname,'renderer','modmaster-plans.html')},
       {repo:'app/renderer/modmaster-hub.html',      local:path.join(__dirname,'renderer','modmaster-hub.html')},
       {repo:'app/renderer/modmaster-settings.html', local:path.join(__dirname,'renderer','modmaster-settings.html')},
       {repo:'app/renderer/sidebar.js',              local:path.join(__dirname,'renderer','sidebar.js')},

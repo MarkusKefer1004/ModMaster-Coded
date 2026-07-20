@@ -129,7 +129,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div style="flex:1;min-width:0;">
           <input class="prof-name" id="prof-name" spellcheck="false" onchange="onNameEdit()">
           <div class="prof-email" id="prof-email">you@example.com</div>
-          <div class="plan-badge" id="prof-plan">Free plan</div>
+          <div class="plan-badge" id="prof-plan" onclick="window.location.href='modmaster-plans.html'" style="cursor:pointer;" title="View plans">Free plan</div>
         </div>
       </div>
 
@@ -148,6 +148,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </ul>
 
       <div class="btn-row">
+        <button class="ghost-btn" onclick="window.location.href='modmaster-plans.html'" style="border-color:rgba(245,197,66,0.35);color:var(--amber,#f5a623);">⭐ Plans</button>
         <button class="ghost-btn" onclick="window.location.href='modmaster-settings.html'">⚙️ Settings</button>
         <button class="ghost-btn danger-btn" onclick="signOut()">Sign out</button>
       </div>
