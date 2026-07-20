@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('MM', {
   readFile:     (p)   => ipcRenderer.invoke('read-file', p),
   saveFile:  (opts)   => ipcRenderer.invoke('save-file', opts),
   installMod: (opts)  => ipcRenderer.invoke('install-mod', opts),
+  uninstallMod:(opts) => ipcRenderer.invoke('uninstall-mod', opts),
+  listInstalls:   ()  => ipcRenderer.invoke('list-installs'),
 
   // Steam Workshop
   scanWorkshop:  (appId) => ipcRenderer.invoke('scan-workshop', appId),

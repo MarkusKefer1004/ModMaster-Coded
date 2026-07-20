@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModMaster — Community Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
+#titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
+#titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--green,#4ade80));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-controls{display:flex;-webkit-app-region:no-drag;}
+.tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+#tb-close:hover{background:#c42b2b;color:#fff;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+/* persistent header (Home + current game + share) */
+.top-row{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.home-btn,.share-btn{display:inline-flex;align-items:center;gap:6px;border-radius:9px;padding:7px 12px;font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.home-btn{background:none;border:0.5px solid var(--border);color:var(--muted);}
+.home-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.share-btn{background:var(--green,#4ade80);border:none;color:#08160c;margin-left:auto;}
+.share-btn:hover{opacity:0.9;}
+.game-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:5px 12px 5px 9px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color 0.2s;}
+.game-chip:hover{border-color:var(--border-hi);}
+.game-dot{width:7px;height:7px;border-radius:50%;}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--green,#4ade80));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.25rem;}
+.note{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:10px;font-size:12px;line-height:1.55;margin-bottom:1.25rem;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.25);color:var(--green,#4ade80);max-width:760px;}
+.note b{color:var(--text);}
+.panel{display:none;}
+.panel.active{display:block;}
+/* search + filters */
+.search-wrap{display:flex;gap:8px;margin-bottom:12px;max-width:760px;}
+.search{flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;outline:none;font-family:'DM Sans',sans-serif;}
+.search:focus{border-color:var(--green,#4ade80);}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
+.chip{padding:5px 12px;border-radius:99px;background:var(--bg2);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.76rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;}
+.chip:hover{border-color:var(--border-hi);color:var(--text);}
+.chip.active{background:rgba(74,222,128,0.14);border-color:rgba(74,222,128,0.4);color:var(--green,#4ade80);}
+/* mod grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;max-width:1100px;}
+.mod-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;}
+.mod-card:hover{transform:translateY(-3px);border-color:var(--green,#4ade80);}
+.mod-top{display:flex;align-items:center;gap:11px;}
+.mod-tile{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.mod-name{font-family:'Rajdhani',sans-serif;font-size:0.98rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:var(--text);line-height:1.15;}
+.mod-author{font-size:11px;color:var(--muted);}
+.mod-desc{font-size:12px;color:var(--muted);line-height:1.5;flex:1;}
+.mod-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.game-tag{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--muted);}
+.install-btn{padding:9px;border-radius:9px;font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;background:rgba(74,222,128,0.12);color:var(--green,#4ade80);border:0.5px solid rgba(74,222,128,0.3);}
+.install-btn:hover{background:var(--green,#4ade80);color:#08160c;}
+.install-btn.installed{background:var(--bg3);color:var(--muted);border-color:var(--border);}
+.install-btn.installed:hover{background:rgba(240,112,80,0.12);color:var(--coral,#f07050);border-color:rgba(240,112,80,0.3);}
+.empty-state{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
+/* detail */
+.detail-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;border-top:2px solid var(--green,#4ade80);padding:1.75rem;max-width:640px;}
+.detail-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:1rem;}
+.detail-tile{width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
+.detail-title{font-family:'Rajdhani',sans-serif;font-size:1.35rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:var(--text);}
+.detail-stats{display:flex;gap:16px;margin:1rem 0;flex-wrap:wrap;}
+.dstat{font-size:12px;color:var(--muted);}
+.dstat b{color:var(--text);font-family:'Rajdhani',sans-serif;font-size:1.05rem;display:block;}
+.reassure{font-size:11.5px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px;}
+.big-install{width:100%;max-width:280px;padding:13px;border-radius:11px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;border:none;cursor:pointer;transition:opacity 0.2s;background:var(--green,#4ade80);color:#08160c;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+.big-install:hover{opacity:0.9;}
+.big-install.installed{background:var(--bg3);color:var(--text);border:0.5px solid var(--border);}
+/* share form */
+.form-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.75rem;max-width:480px;}
+.field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:6px;display:block;}
+.field{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;padding:10px 12px;outline:none;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.field:focus{border-color:var(--green,#4ade80);}
+textarea.field{resize:vertical;min-height:70px;}
+.ghost-btn{padding:11px 16px;border-radius:10px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;}
+.ghost-btn:hover{border-color:var(--border-hi);}
+.primary-btn{padding:11px 18px;border-radius:10px;background:var(--green,#4ade80);color:#08160c;border:none;font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.primary-btn:hover{opacity:0.9;}
+.back-link{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;margin-bottom:1rem;}
+.back-link:hover{color:var(--text);}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
+  <div id="titlebar-controls">
+    <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="mm-main-content">
+  <!-- Persistent header: Home + current game + share -->
+  <div class="top-row fade-in">
+    <button class="home-btn" onclick="goHome()">🏠 Home</button>
+    <div id="game-chip-wrap"></div>
+    <button class="share-btn" onclick="openShare()">⬆ Share a mod</button>
+  </div>
+
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Community Hub</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Discover mods made by other players — one click to add them to your game.</div>
+
+  <div class="note"><span>ℹ</span><span><b>Preview.</b> These are sample mods. Live community browsing, downloads and sharing switch on when ModMaster's online service goes live — your account is ready for it.</span></div>
+
+  <!-- Browse -->
+  <div id="step-browse" class="panel active">
+    <div class="search-wrap">
+      <input class="search" id="search" placeholder="Search mods, authors, games…" oninput="renderBrowse()">
+    </div>
+    <div class="chips" id="cat-chips"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Detail -->
+  <div id="step-detail" class="panel">
+    <button class="back-link" onclick="show('browse')">← Back to browse</button>
+    <div id="detail-body"></div>
+  </div>
+
+  <!-- Share -->
+  <div id="step-share" class="panel">
+    <button class="back-link" onclick="show('browse')">← Back to browse</button>
+    <div class="form-card">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:4px;">Share a mod</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1.25rem;">Publish one of your mods so other players can use it. Nothing is uploaded until the online service is live.</div>
+      <label class="field-label">Mod name</label>
+      <input class="field" id="s-name" placeholder="e.g. Realistic Weather Overhaul" spellcheck="false">
+      <label class="field-label">Game</label>
+      <input class="field" id="s-game" placeholder="e.g. GTA V" spellcheck="false">
+      <label class="field-label">Category</label>
+      <select class="field" id="s-cat"></select>
+      <label class="field-label">Description</label>
+      <textarea class="field" id="s-desc" placeholder="What does your mod do?"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="ghost-btn" onclick="show('browse')">Cancel</button>
+        <button class="primary-btn" onclick="publishShare()">Publish</button>
+      </div>
+      <div id="share-msg" style="font-size:12.5px;color:var(--green,#4ade80);margin-top:1rem;min-height:18px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="game-selector.js"></script>
+<script src="electron-bridge.js"></script>
+<script>
+const CATEGORIES = ['All','Gameplay','Graphics','Weapons','Vehicles','UI','Cheats','Overhaul']
+const MODS = [
+  {id:'h1', name:'Realistic Weather Overhaul', author:'StormKing', game:'GTA V', cat:'Graphics', dl:128000, rating:4.8, icon:'🌧️', color:'#60a0f0', desc:'Dynamic weather with volumetric clouds, wet roads and real lightning storms.'},
+  {id:'h2', name:'Ultimate Trainer', author:'MenuMaster', game:'GTA V', cat:'Cheats', dl:540000, rating:4.9, icon:'🎛️', color:'#f5a623', desc:'Spawn vehicles, godmode, teleport and hundreds of options from one menu.'},
+  {id:'h3', name:'4K Texture Pack', author:'PixelForge', game:'Skyrim SE', cat:'Graphics', dl:302000, rating:4.7, icon:'🖼️', color:'#8b7cef', desc:'Hand-remastered 4K textures for nearly every surface in Skyrim.'},
+  {id:'h4', name:'Immersive Combat', author:'BladeWorks', game:'Skyrim SE', cat:'Overhaul', dl:210000, rating:4.6, icon:'⚔️', color:'#f07050', desc:'Rebalanced stamina, timed blocks and genuinely lethal hits.'},
+  {id:'h5', name:'Faster Farming', author:'CozyByte', game:'Stardew Valley', cat:'Gameplay', dl:88000, rating:4.5, icon:'🌾', color:'#4ade80', desc:'Auto-water sprinklers and quicker tools so you can farm more, grind less.'},
+  {id:'h6', name:'Neon City Lights', author:'GlowDev', game:'Cyberpunk 2077', cat:'Graphics', dl:154000, rating:4.4, icon:'🌃', color:'#ff77aa', desc:'Punchier neon, sharper reflections and moodier night-time ambience.'},
+  {id:'h7', name:'Minimal HUD', author:'CleanUI', game:'GTA V', cat:'UI', dl:66000, rating:4.3, icon:'📊', color:'#2dd4a0', desc:'Strip the on-screen clutter down to just what you actually need.'},
+  {id:'h8', name:'Supercar Pack', author:'GearHead', game:'GTA V', cat:'Vehicles', dl:275000, rating:4.7, icon:'🏎️', color:'#f07050', desc:'Twelve hand-tuned supercars with custom handling and sound.'},
+  {id:'h9', name:'Harder Survival', author:'IronGate', game:'Valheim', cat:'Overhaul', dl:47000, rating:4.2, icon:'🪓', color:'#6090a0', desc:'Tougher enemies, scarcer food and real stakes in the wild.'},
+  {id:'h10',name:'Rapid Reload', author:'TriggerHappy', game:'GTA V', cat:'Weapons', dl:93000, rating:4.1, icon:'🔫', color:'#f5a623', desc:'Faster reloads and tighter recoil across all weapons.'},
+]
+
+let activeGame = null
+let activeCat = 'All'
+let installed = new Set()
+
+function goHome(){ window.location.href='modmaster.html' }
+function show(s){ ['browse','detail','share'].forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+
+// ── Current game chip (persistent header) ─────────────────────────────────────
+function renderChip(){
+  const wrap=document.getElementById('game-chip-wrap')
+  if(activeGame){
+    wrap.innerHTML=`<div class="game-chip" onclick="pickGame()">
+      <div class="game-dot" style="background:${activeGame.color};box-shadow:0 0 5px ${activeGame.color};"></div>
+      ${activeGame.name}<span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span></div>`
+  } else {
+    wrap.innerHTML=`<div class="game-chip" onclick="pickGame()">🎮 All games<span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span></div>`
+  }
+}
+function pickGame(){
+  showGamePicker(function(game){
+    activeGame=game
+    try{ localStorage.setItem('mm-active-game', JSON.stringify(game)) }catch{}
+    if(window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+    renderChip(); renderBrowse()
+  })
+}
+
+// ── Browse ────────────────────────────────────────────────────────────────────
+function renderCats(){
+  document.getElementById('cat-chips').innerHTML = CATEGORIES.map(c=>
+    `<div class="chip ${c===activeCat?'active':''}" onclick="setCat('${c}')">${c}</div>`).join('')
+}
+function setCat(c){ activeCat=c; renderCats(); renderBrowse() }
+
+function humanNum(n){ if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return Math.round(n/1000)+'k'; return ''+n }
+
+function filtered(){
+  const q=(document.getElementById('search').value||'').toLowerCase().trim()
+  return MODS.filter(m=>{
+    if(activeCat!=='All' && m.cat!==activeCat) return false
+    if(q && !(m.name.toLowerCase().includes(q)||m.author.toLowerCase().includes(q)||m.game.toLowerCase().includes(q))) return false
+    return true
+  })
+}
+function renderBrowse(){
+  const list=filtered()
+  const grid=document.getElementById('grid')
+  if(!list.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1;"><div style="font-size:2.5rem;margin-bottom:1rem;">🔍</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">No mods match</div>
+      <div style="font-size:13px;color:var(--muted);">Try a different search or category.</div></div>`
+    return
+  }
+  grid.innerHTML=list.map(cardHTML).join('')
+}
+function cardHTML(m){
+  const inst=installed.has(m.id)
+  return `<div class="mod-card" onclick="openDetail('${m.id}')">
+    <div class="mod-top">
+      <div class="mod-tile" style="background:${m.color}22;">${m.icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="mod-name">${m.name}</div>
+        <div class="mod-author">by ${m.author}</div>
+      </div>
+    </div>
+    <div class="mod-desc">${m.desc}</div>
+    <div class="mod-meta"><span class="game-tag">${m.game}</span> <span>★ ${m.rating}</span> <span>⬇ ${humanNum(m.dl)}</span></div>
+    <button class="install-btn ${inst?'installed':''}" onclick="toggleInstall('${m.id}',event)">${inst?'✓ Installed':'⬇ Install'}</button>
+  </div>`
+}
+
+// ── Detail ────────────────────────────────────────────────────────────────────
+function openDetail(id){
+  const m=MODS.find(x=>x.id===id); if(!m) return
+  const inst=installed.has(m.id)
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-card">
+      <div class="detail-head">
+        <div class="detail-tile" style="background:${m.color}22;">${m.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="detail-title">${m.name}</div>
+          <div class="mod-author" style="margin-top:2px;">by ${m.author} · <span class="game-tag">${m.game}</span></div>
+        </div>
+      </div>
+      <div class="mod-desc" style="font-size:13px;">${m.desc} It installs in one click and is safe to remove anytime.</div>
+      <div class="detail-stats">
+        <div class="dstat"><b>★ ${m.rating}</b> rating</div>
+        <div class="dstat"><b>${humanNum(m.dl)}</b> downloads</div>
+        <div class="dstat"><b>${m.cat}</b> category</div>
+      </div>
+      <button class="big-install ${inst?'installed':''}" id="detail-install" onclick="toggleInstall('${m.id}',event,true)">${inst?'✓ Installed — remove':'⬇ Install to '+(activeGame?activeGame.name:'my game')}</button>
+      <div class="reassure">🛟 ModMaster backs up anything it replaces, so you can uninstall and restore your game anytime.</div>
+    </div>`
+  show('detail')
+}
+
+// ── Install / uninstall ───────────────────────────────────────────────────────
+function saveInstalled(){ try{ localStorage.setItem('mm-hub-installed', JSON.stringify([...installed])) }catch{} }
+
+async function toggleInstall(id, e, isDetail){
+  if(e) e.stopPropagation()
+  const m=MODS.find(x=>x.id===id); if(!m) return
+  const btn=e ? e.currentTarget : null
+  if(installed.has(m.id)){
+    // Uninstall (restores backup via backend when a real install exists)
+    if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div>' }
+    if(window.MM && window.MM.uninstallMod){ try{ await window.MM.uninstallMod({dest:m.__dest}) }catch{} }
+    await sleep(500)
+    installed.delete(m.id); saveInstalled()
+  } else {
+    if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div> Installing…' }
+    await sleep(900)   // simulate download + install (real downloads arrive with the online service)
+    installed.add(m.id); saveInstalled()
+  }
+  // Re-render whichever view is showing
+  if(isDetail) openDetail(id)
+  renderBrowse()
+}
+
+// ── Share ─────────────────────────────────────────────────────────────────────
+function openShare(){
+  document.getElementById('s-cat').innerHTML=CATEGORIES.filter(c=>c!=='All').map(c=>`<option>${c}</option>`).join('')
+  document.getElementById('s-name').value=''
+  document.getElementById('s-game').value=activeGame?activeGame.name:''
+  document.getElementById('s-desc').value=''
+  document.getElementById('share-msg').textContent=''
+  show('share')
+}
+function publishShare(){
+  const name=document.getElementById('s-name').value.trim()
+  const msg=document.getElementById('share-msg')
+  if(!name){ msg.style.color='var(--coral,#f07050)'; msg.textContent='Please give your mod a name.'; return }
+  msg.style.color='var(--green,#4ade80)'
+  msg.textContent='✓ Saved! "'+name+'" will be published when the online service is live.'
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+async function init(){
+  try{ activeGame=JSON.parse(localStorage.getItem('mm-active-game')||'null') }catch{}
+  try{ installed=new Set(JSON.parse(localStorage.getItem('mm-hub-installed')||'[]')) }catch{}
+  renderChip(); renderCats(); renderBrowse()
+}
+document.addEventListener('DOMContentLoaded', init)
+</script>
+</body>
+</html>

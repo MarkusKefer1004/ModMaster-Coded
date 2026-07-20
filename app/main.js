@@ -8,6 +8,7 @@ const { execSync } = require('child_process')
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(app.getPath('userData'), 'modmaster-config.json')
+const BACKUP_DIR  = path.join(app.getPath('userData'), 'mm-backups')
 function loadConfig() { try { return JSON.parse(fs.readFileSync(CONFIG_PATH,'utf8')) } catch { return {} } }
 function saveConfig(d) { fs.writeFileSync(CONFIG_PATH, JSON.stringify(d,null,2),'utf8') }
 
@@ -452,11 +453,44 @@ ipcMain.handle('create-mod-folder', async (e, folderPath) => {
 ipcMain.handle('read-file',  async (e, p) => { try { return {success:true,content:fs.readFileSync(p,'utf8')} } catch(err) { return {success:false,error:err.message} } })
 ipcMain.handle('save-file',  async (e, {filePath,content}) => { try { fs.writeFileSync(filePath,content,'utf8'); return {success:true} } catch(err) { return {success:false,error:err.message} } })
 
-// ── Install mod (copy file into game folder) ─────────────────────────────────
-ipcMain.handle('install-mod', async (e, {sourcePath,gamePath}) => {
-  try { fs.copyFileSync(sourcePath, path.join(gamePath,path.basename(sourcePath))); return {success:true} }
-  catch(err) { return {success:false,error:err.message} }
+// ── Install mod (copy into game folder, backing up any file it overwrites) ────
+ipcMain.handle('install-mod', async (e, {sourcePath, gamePath, name}) => {
+  try {
+    const dest = path.join(gamePath, path.basename(sourcePath))
+    const cfg = loadConfig(); cfg.installs = cfg.installs || []
+    // Back up any existing file before overwriting, so installs are always reversible
+    let backup = null
+    if (fs.existsSync(dest)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true })
+      backup = path.join(BACKUP_DIR, path.basename(dest) + '.' + Date.now() + '.bak')
+      fs.copyFileSync(dest, backup)
+    }
+    fs.copyFileSync(sourcePath, dest)
+    const id = 'inst_' + Date.now() + '_' + Math.floor(Math.random() * 1e6)
+    cfg.installs.push({ id, name: name || path.basename(sourcePath), dest, backup, gamePath, ts: new Date().toISOString() })
+    saveConfig(cfg)
+    return { success: true, id, backedUp: !!backup }
+  } catch (err) { return { success: false, error: err.message } }
 })
+
+// ── Uninstall mod (remove installed file, restore the backup if there was one) ─
+ipcMain.handle('uninstall-mod', async (e, { id, dest }) => {
+  try {
+    const cfg = loadConfig(); cfg.installs = cfg.installs || []
+    const rec = cfg.installs.find(r => (id && r.id === id) || (dest && r.dest === dest))
+    const target = rec ? rec.dest : dest
+    if (target && fs.existsSync(target)) fs.unlinkSync(target)
+    let restored = false
+    if (rec && rec.backup && fs.existsSync(rec.backup)) {
+      fs.copyFileSync(rec.backup, rec.dest); fs.unlinkSync(rec.backup); restored = true
+    }
+    if (rec) { cfg.installs = cfg.installs.filter(r => r.id !== rec.id); saveConfig(cfg) }
+    return { success: true, restored }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
+// ── List installed mods (from the install registry in config) ─────────────────
+ipcMain.handle('list-installs', async () => loadConfig().installs || [])
 
 // ── Self-updater ─────────────────────────────────────────────────────────────
 ipcMain.handle('update-and-restart', async (e, {repoUrl}) => {
