@@ -4,48 +4,349 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ModMaster — Tool Installer</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="theme.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
 #titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
 #titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
-#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--amber,#f5a623));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #titlebar-controls{display:flex;-webkit-app-region:no-drag;}
 .tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
 .tb-btn:hover{background:var(--bg3);color:var(--text);}
 #tb-close:hover{background:#c42b2b;color:#fff;}
-#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;padding:2rem;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
-.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;width:100%;position:relative;z-index:1;border-top:2px solid var(--amber,#f5a623);}
-.icon{font-size:3rem;margin-bottom:1rem;}
-h1{font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--amber,#f5a623);margin-bottom:10px;}
-p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:1.5rem;}
-.badge{display:inline-block;font-size:11px;padding:4px 12px;border-radius:99px;background:rgba(245,166,35,0.1);color:var(--amber,#f5a623);font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:1.5rem;}
-.back-btn{padding:10px 24px;border-radius:10px;background:rgba(245,166,35,0.1);color:var(--amber,#f5a623);border:0.5px solid rgba(245,166,35,0.3);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
-.back-btn:hover{background:var(--amber,#f5a623);color:#0a0a0a;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+.pulsing{animation:pulse 1.4s ease infinite;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.game-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:4px 12px 4px 8px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color 0.2s;}
+.game-badge:hover{border-color:var(--border-hi);}
+.game-dot{width:7px;height:7px;border-radius:50%;}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--amber,#f5a623));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+.panel{display:none;max-width:660px;}
+.panel.active{display:block;}
+.pick-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
+.primary-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;background:var(--amber,#f5a623);color:#1a1204;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.primary-btn:hover{opacity:0.88;}
+.primary-btn:disabled{opacity:0.4;cursor:not-allowed;}
+/* tool cards */
+.tool-list{display:flex;flex-direction:column;gap:10px;margin-bottom:1.25rem;}
+.tool-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;}
+.tool-ico{font-size:22px;flex-shrink:0;margin-top:2px;}
+.tool-name{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);}
+.tool-blurb{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:3px;}
+.tool-tag{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:rgba(245,166,35,0.1);color:var(--amber,#f5a623);flex-shrink:0;}
+.note{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:10px;font-size:12.5px;line-height:1.55;margin-bottom:1.25rem;}
+.note-info{background:rgba(245,166,35,0.08);border:0.5px solid rgba(245,166,35,0.25);color:var(--amber,#f5a623);}
+.note-warn{background:rgba(240,112,80,0.08);border:0.5px solid rgba(240,112,80,0.25);color:var(--coral,#f07050);}
+.note b{color:var(--text);}
+/* progress */
+.install-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2rem;max-width:480px;}
+.install-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.progress-track{height:5px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:1rem 0 6px;}
+.progress-fill{height:100%;border-radius:99px;transition:width 0.4s ease;width:0%;background:var(--amber,#f5a623);}
+.progress-txt{font-size:11px;color:var(--muted);}
+.current-action{font-size:12px;color:var(--amber,#f5a623);margin-top:4px;min-height:16px;}
+.tool-prog{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.tool-prog:last-child{border-bottom:none;}
+/* xbox steps */
+.xbox-step{display:flex;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border);}
+.xbox-step:last-child{border-bottom:none;}
+.xbox-num{width:24px;height:24px;border-radius:50%;background:rgba(245,166,35,0.14);color:var(--amber,#f5a623);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.xbox-txt{font-size:13px;color:var(--text);line-height:1.5;}
+.xbox-txt small{color:var(--muted);display:block;margin-top:2px;font-size:11.5px;}
+.card-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.5rem 1.5rem;}
+.manual-box{background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:10px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted);line-height:1.7;white-space:pre-wrap;display:none;}
+.manual-box.open{display:block;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem;}
+.ghost-btn{padding:11px 16px;border-radius:10px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.ghost-btn:hover{border-color:var(--border-hi);}
+.link-btn{background:none;border:none;color:var(--amber,#f5a623);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;padding:0;}
+.link-btn:hover{text-decoration:underline;}
+/* results */
+.result-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;border-top:2px solid var(--amber,#f5a623);padding:1.75rem;max-width:520px;}
+.res-line{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);padding:6px 0;}
+.empty-state{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
 </style>
 </head>
 <body>
+
 <div id="titlebar">
-  <div id="titlebar-left">
-    <span id="titlebar-logo">ModMaster</span>
-  </div>
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
   <div id="titlebar-controls">
     <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
-    <button class="tb-btn" onclick="window.MM?.close()">&#x2715;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
   </div>
 </div>
+
 <div id="mm-main-content">
-  <div class="card">
-    <div class="icon">🔧</div>
-    <div class="badge">Coming in Step 5</div>
-    <h1>Tool Installer</h1>
-    <p>Install UE4SS, ScriptHookV, OpenIV and other modding tools directly into your game folder. Supports Xbox Game Pass games too. Coming in Step 5.</p>
-    <button class="back-btn" onclick="window.location.href='modmaster.html'">← Back to home</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;" class="fade-in">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div id="game-badge-wrap"></div>
+  </div>
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Tool Installer</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Install the modding tools your game needs — automatically.</div>
+
+  <!-- Step 1: pick game -->
+  <div id="step-game" class="panel active">
+    <div class="pick-card">
+      <div style="font-size:2.5rem;margin-bottom:1rem;">🔧</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">Which game?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.6;">Pick a game and ModMaster detects which modding tools it needs.</div>
+      <button class="primary-btn" onclick="openGamePicker()">🎮 Choose a game</button>
+    </div>
+  </div>
+
+  <!-- Step 2: recommended tools -->
+  <div id="step-tools" class="panel">
+    <div id="tools-notes"></div>
+    <div class="tool-list" id="tool-list"></div>
+    <button class="primary-btn" id="install-btn" style="width:100%;" onclick="startInstallFlow()">⬇ Install</button>
+  </div>
+
+  <!-- Step 3: Xbox Game Pass permission -->
+  <div id="step-xbox" class="panel">
+    <div class="note note-warn"><span>⚠</span><span><b>Xbox Game Pass game detected.</b> These games live in a protected Windows folder, so installing tools needs a one-time permission step. It may take a minute longer than usual.</span></div>
+    <div class="card-panel">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:4px;">Guided permission setup</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ModMaster can grant itself access automatically (needs admin), or you can do it manually.</div>
+      <div class="xbox-step"><div class="xbox-num">1</div><div class="xbox-txt">Close the game and the Xbox app.<small>So no files are locked while we set permissions.</small></div></div>
+      <div class="xbox-step"><div class="xbox-num">2</div><div class="xbox-txt">Grant ModMaster access to the game folder.<small>Takes ownership + full control of the protected WindowsApps folder.</small></div></div>
+      <div class="xbox-step"><div class="xbox-num">3</div><div class="xbox-txt">Install the tool.<small>Same as any other game once access is granted.</small></div></div>
+      <div class="manual-box" id="manual-box">Manual (run PowerShell as Administrator):
+takeown /f "&lt;game folder&gt;" /r /d y
+icacls "&lt;game folder&gt;" /grant "%USERNAME%":(F) /t
+Then re-run the installer and choose "Skip — try installing".</div>
+      <div class="btn-row">
+        <button class="primary-btn" id="xbox-grant-btn" onclick="grantXbox()">🛡 Grant permission automatically</button>
+        <button class="ghost-btn" onclick="toggleManual()">Show manual steps</button>
+        <button class="ghost-btn" onclick="skipXbox()">Skip — try installing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: installing -->
+  <div id="step-installing" class="panel">
+    <div class="install-card">
+      <div class="install-title"><div class="spinner" style="color:var(--amber,#f5a623);"></div> Installing…</div>
+      <div class="progress-track"><div class="progress-fill" id="inst-bar"></div></div>
+      <div style="display:flex;justify-content:space-between;">
+        <div class="current-action" id="inst-action">Starting…</div>
+        <div class="progress-txt" id="inst-pct">0%</div>
+      </div>
+      <div style="margin-top:1rem;" id="inst-list"></div>
+    </div>
+  </div>
+
+  <!-- Step 5: results -->
+  <div id="step-results" class="panel">
+    <div class="result-card">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--amber,#f5a623);font-family:'Rajdhani',sans-serif;font-weight:700;margin-bottom:10px;" id="res-title">✓ Tools installed</div>
+      <div id="res-lines"></div>
+      <div class="note note-info" style="margin-top:1rem;"><span>ℹ</span><span id="res-hint">Your tools are ready. Launch the game once to let them initialise, then add your mods.</span></div>
+      <div class="btn-row">
+        <button class="primary-btn" onclick="location.href='modmaster.html'">✓ Done</button>
+        <button class="ghost-btn" onclick="show('game')">Install for another game</button>
+      </div>
+    </div>
   </div>
 </div>
+
+<script src="game-selector.js"></script>
 <script src="electron-bridge.js"></script>
+<script>
+let activeGame = null
+let recommended = []           // tool ids for the active game
+let xboxGranted = false
+
+const STEPS = ['game','tools','xbox','installing','results']
+function show(s){ STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+function goBack(){
+  const cur = STEPS.find(s=>document.getElementById('step-'+s)?.classList.contains('active'))
+  if(cur==='tools'||cur==='results') show('game')
+  else if(cur==='xbox') show('tools')
+  else window.location.href='modmaster.html'
+}
+
+// ── Tool catalogue ─────────────────────────────────────────────────────────────
+const TOOLS = {
+  ue4ss:          {name:'UE4SS',          ico:'🧩', engine:'Unreal Engine', blurb:'Unreal Engine scripting system — enables Lua mods and a live mod GUI for UE4/UE5 games.'},
+  scripthookv:    {name:'ScriptHookV',    ico:'🎯', engine:'RAGE',          blurb:'Runs .asi script mods and native trainers in GTA V.'},
+  scripthookrdr2: {name:'ScriptHookRDR2', ico:'🎯', engine:'RAGE',          blurb:'Script-mod loader for Red Dead Redemption 2.'},
+  openiv:         {name:'OpenIV',         ico:'📦', engine:'RAGE',          blurb:'Archive editor for GTA V / GTA IV — edit game files and install texture & model mods.'},
+  smapi:          {name:'SMAPI',          ico:'🌱', engine:'MonoGame',      blurb:'The Stardew Valley modding API and mod loader.'},
+  bepinex:        {name:'BepInEx',        ico:'⚙️', engine:'Unity',         blurb:'Plugin framework and patcher for Unity games.'},
+  f4se:           {name:'F4SE',           ico:'☢️', engine:'Creation Engine',blurb:'Fallout 4 Script Extender — required by most advanced Fallout 4 mods.'},
+  skse64:         {name:'SKSE64',         ico:'📜', engine:'Creation Engine',blurb:'Skyrim Script Extender — required by most advanced Skyrim SE mods.'},
+}
+// Which tool(s) each known game needs
+const GAME_TOOLS = {
+  'GTA V':          ['scripthookv','openiv'],
+  'RDR2':           ['scripthookrdr2'],
+  'Skyrim SE':      ['skse64'],
+  'Skyrim VR':      ['skse64'],
+  'Fallout 4':      ['f4se'],
+  'Stardew Valley': ['smapi'],
+  'Valheim':        ['bepinex'],
+  'Elden Ring':     ['bepinex'],
+  'Cities Skylines':['bepinex'],
+}
+// Games with native/other mod support — no loader tool needed
+const NATIVE_MOD = {
+  'Minecraft':'Minecraft uses Forge or Fabric — install those from their sites.',
+  'RimWorld':'RimWorld supports mods natively through the in-game menu & Steam Workshop.',
+  'Cyberpunk 2077':'Cyberpunk mods use RED4ext / Cyber Engine Tweaks — coming to ModMaster soon.',
+  'Witcher 3':'The Witcher 3 loads mods from its Mods folder — no loader tool needed.',
+  'MH World':'Monster Hunter World mods drop into nativePC — no loader tool needed.',
+  'Dark Souls III':'Dark Souls III uses Mod Engine — coming to ModMaster soon.',
+}
+
+// ── Game picker ────────────────────────────────────────────────────────────────
+function openGamePicker(){
+  showGamePicker(function(game){
+    activeGame = game; renderGameBadge(game); xboxGranted = false
+    if(window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+    detectTools(game)
+  })
+}
+function renderGameBadge(game){
+  if(!game) return
+  document.getElementById('game-badge-wrap').innerHTML=`
+    <div class="game-badge" onclick="openGamePicker()">
+      <div class="game-dot" style="background:${game.color};box-shadow:0 0 5px ${game.color};"></div>
+      ${game.name}<span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span>
+    </div>`
+}
+
+// ── Detect + show recommended tools ────────────────────────────────────────────
+function detectTools(game){
+  recommended = GAME_TOOLS[game.name] || []
+  const notes = document.getElementById('tools-notes')
+  const list  = document.getElementById('tool-list')
+  const btn   = document.getElementById('install-btn')
+
+  // Native / unsupported → friendly message, no install
+  if(!recommended.length){
+    const msg = NATIVE_MOD[game.name] || 'ModMaster has no specific tool for this game yet. You can still add mods manually.'
+    notes.innerHTML=''
+    list.innerHTML=`<div class="empty-state"><div style="font-size:2.5rem;margin-bottom:1rem;">✅</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">No loader tool needed</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;">${msg}</div></div>`
+    btn.style.display='none'
+    document.getElementById('page-sub').textContent=game.name+' — no tool required.'
+    show('tools'); return
+  }
+  btn.style.display=''
+
+  // Notes: Xbox warning and/or multi-tool compatibility note
+  let noteHTML=''
+  if(game.isXbox || game.platform==='xbox'){
+    noteHTML+=`<div class="note note-warn"><span>⚠</span><span><b>Xbox Game Pass game.</b> Installing here needs a one-time permission step — ModMaster will guide you.</span></div>`
+  }
+  if(recommended.length>1){
+    noteHTML+=`<div class="note note-info"><span>ℹ</span><span><b>${recommended.length} tools recommended.</b> They work together — install both for full mod support. Install order doesn't matter.</span></div>`
+  }
+  notes.innerHTML=noteHTML
+
+  list.innerHTML=recommended.map(id=>{
+    const t=TOOLS[id]; if(!t) return ''
+    return `<div class="tool-card">
+      <div class="tool-ico">${t.ico}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;"><span class="tool-name">${t.name}</span></div>
+        <div class="tool-blurb">${t.blurb}</div>
+      </div>
+      <div class="tool-tag">${t.engine}</div>
+    </div>`
+  }).join('')
+  btn.textContent = recommended.length>1 ? `⬇ Install ${recommended.length} tools` : '⬇ Install '+TOOLS[recommended[0]].name
+  document.getElementById('page-sub').textContent='Recommended for '+game.name+'.'
+  show('tools')
+}
+
+// ── Install flow ───────────────────────────────────────────────────────────────
+function startInstallFlow(){
+  // Xbox games route through the permission step first (unless already granted)
+  if((activeGame?.isXbox || activeGame?.platform==='xbox') && !xboxGranted){ show('xbox'); return }
+  runInstall()
+}
+function toggleManual(){ document.getElementById('manual-box').classList.toggle('open') }
+async function grantXbox(){
+  const btn=document.getElementById('xbox-grant-btn')
+  btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div> Granting access…'
+  // TODO(real): call an MM handler that runs takeown/icacls via elevated PowerShell on activeGame.gamePath
+  await sleep(1600)
+  xboxGranted=true
+  btn.innerHTML='✓ Access granted'
+  await sleep(500)
+  runInstall()
+}
+function skipXbox(){ xboxGranted=true; runInstall() }
+
+async function runInstall(){
+  show('installing')
+  document.getElementById('page-sub').textContent='Installing tools for '+(activeGame?activeGame.name:'your game')+'…'
+  const list=document.getElementById('inst-list')
+  list.innerHTML=recommended.map(id=>`<div class="tool-prog" id="ip-${id}">
+    <div id="ip-ico-${id}" style="font-size:15px;">⏳</div>
+    <div style="flex:1;">${TOOLS[id].name}</div>
+    <div id="ip-badge-${id}" class="tool-tag" style="background:rgba(107,112,128,0.12);color:var(--muted);">Queued</div>
+  </div>`).join('')
+
+  const results=[]
+  for(let i=0;i<recommended.length;i++){
+    const id=recommended[i]
+    const stages=['Downloading…','Verifying…','Copying to game folder…','Done']
+    document.getElementById('ip-ico-'+id).innerHTML='<div class="spinner" style="width:14px;height:14px;color:var(--amber,#f5a623);"></div>'
+    document.getElementById('ip-badge-'+id).textContent='Installing'
+    for(let s=0;s<stages.length;s++){
+      const overall=Math.round(((i+ s/stages.length)/recommended.length)*100)
+      document.getElementById('inst-bar').style.width=overall+'%'
+      document.getElementById('inst-pct').textContent=overall+'%'
+      document.getElementById('inst-action').textContent=TOOLS[id].name+' — '+stages[s]
+      await sleep(430)
+    }
+    // TODO(real): download the tool archive and extract into activeGame.gamePath via an MM handler
+    document.getElementById('ip-ico-'+id).textContent='✓'
+    document.getElementById('ip-ico-'+id).style.color='var(--green,#4ade80)'
+    const b=document.getElementById('ip-badge-'+id)
+    b.textContent='Installed'; b.style.background='rgba(74,222,128,0.12)'; b.style.color='var(--green,#4ade80)'
+    results.push(id)
+  }
+  document.getElementById('inst-bar').style.width='100%'
+  document.getElementById('inst-pct').textContent='100%'
+  document.getElementById('inst-action').textContent='Done!'
+  await sleep(500)
+  showResults(results)
+}
+
+function showResults(ids){
+  document.getElementById('res-title').textContent='✓ '+ids.length+' tool'+(ids.length!==1?'s':'')+' installed'
+  document.getElementById('res-lines').innerHTML=ids.map(id=>`<div class="res-line"><span style="color:var(--green,#4ade80);">✓</span> <b style="font-weight:600;">${TOOLS[id].name}</b> <span style="color:var(--muted);font-size:12px;">installed to ${activeGame?activeGame.name:'game'}</span></div>`).join('')
+  const hint = (activeGame?.isXbox)
+    ? 'Xbox Game Pass note: if the game updates, you may need to re-grant permission. Launch the game once to let the tools initialise.'
+    : 'Launch the game once to let the tools initialise, then add your mods.'
+  document.getElementById('res-hint').textContent=hint
+  document.getElementById('page-sub').textContent='All set!'
+  show('results')
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function init(){
+  try{ const g=JSON.parse(localStorage.getItem('mm-active-game')||'null'); if(g){ activeGame=g; renderGameBadge(g); detectTools(g); return } }catch{}
+  show('game')
+}
+document.addEventListener('DOMContentLoaded', init)
+</script>
 </body>
 </html>
