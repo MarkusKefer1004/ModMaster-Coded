@@ -15,6 +15,14 @@ Output lands in **`dist\`**:
 
 Prefer an unpacked folder instead of installers? `npm run pack` → `dist\win-unpacked\ModMaster.exe`.
 
+## Where to build
+- Build on a machine with **open internet** — `npm install` downloads the Electron
+  binary and electron-builder downloads NSIS/signing tools from GitHub. Locked-down
+  corporate networks may block these (`ECONNRESET`).
+- Prefer a folder **outside OneDrive/OneDrive-synced paths**. OneDrive locks files
+  mid-write and can break `npm install` on the ~100k `node_modules` files (`EPERM`).
+  Copy the project somewhere like `C:\dev\ModMaster` to build.
+
 ## Notes
 - **Icon:** none set yet, so builds use Electron's default icon. To brand it, add
   `build/icon.ico` (256×256) and set `"win": { "icon": "build/icon.ico" }` in
