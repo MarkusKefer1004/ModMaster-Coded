@@ -79,6 +79,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .fix-btn:disabled{opacity:0.4;cursor:not-allowed;}
 .select-all-btn{background:none;border:0.5px solid var(--border);border-radius:8px;padding:5px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
 .select-all-btn:hover{border-color:var(--border-hi);color:var(--text);}
+/* mode tabs (Installed Mods / Steam Workshop) */
+.mode-tabs{display:flex;gap:4px;margin-bottom:1.25rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:11px;padding:4px;max-width:660px;}
+.mode-tab{flex:1;padding:9px 12px;border:none;background:none;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.mode-tab:hover{color:var(--text);}
+.mode-tab.active{background:var(--purple,#8b7cef);color:#fff;}
+/* workshop cards */
+.ws-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color 0.2s;}
+.ws-card:hover{border-color:var(--border-hi);}
+.ws-icon{font-size:20px;flex-shrink:0;}
+.ws-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ws-link{color:var(--purple,#8b7cef);text-decoration:none;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
+.ws-link:hover{text-decoration:underline;}
+/* empty state */
+.empty-state{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;}
 </style>
 </head>
 <body>
@@ -98,6 +112,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Update Mods</div>
   <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Select a game to scan for broken or outdated mods.</div>
+
+  <!-- Mode tabs: Installed Mods vs Steam Workshop (shown once a game is picked) -->
+  <div class="mode-tabs" id="mode-tabs" style="display:none;">
+    <button class="mode-tab active" id="tab-local" onclick="setMode('local')">🧩 Installed Mods</button>
+    <button class="mode-tab" id="tab-workshop" onclick="setMode('workshop')">🛠 Steam Workshop</button>
+  </div>
 
   <!-- Step 1: Pick game -->
   <div id="step-game" class="panel active">
@@ -155,6 +175,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <button onclick="rescan()" style="width:100%;margin-top:4px;padding:11px;border-radius:10px;background:var(--bg2);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--border-hi)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🔄 Scan again</button>
   </div>
 
+  <!-- Step 6: Steam Workshop -->
+  <div id="step-workshop" class="panel">
+    <div class="summary-bar" id="ws-summary-bar"></div>
+    <div id="ws-body"></div>
+  </div>
+
 </div>
 
 <script src="game-selector.js"></script>
@@ -164,15 +190,35 @@ let activeGame = null
 let scannedMods = []
 let selectedIds = new Set()
 let fixResults  = []
+let workshopItems = []
+let currentMode = 'local'
 
-const STEPS = ['game','scanning','list','fixing','results']
-function show(s){ STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+const STEPS = ['game','scanning','list','fixing','results','workshop']
+function show(s){
+  STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) })
+  // Tab bar visible only while browsing a picked game (not during picker/scan/fix)
+  const tabs=document.getElementById('mode-tabs')
+  if(tabs) tabs.style.display = (activeGame && ['list','results','workshop'].includes(s)) ? 'flex' : 'none'
+  const tl=document.getElementById('tab-local'), tw=document.getElementById('tab-workshop')
+  if(tl&&tw){ const ws=(s==='workshop'); tl.classList.toggle('active',!ws); tw.classList.toggle('active',ws) }
+}
 
 function goBack(){
   const cur = STEPS.find(s=>document.getElementById('step-'+s)?.classList.contains('active'))
-  if(cur==='list'||cur==='results') show('game')
+  if(cur==='list'||cur==='results'||cur==='workshop') { currentMode='local'; show('game') }
   else if(cur==='fixing') show('list')
   else window.location.href='modmaster.html'
+}
+
+// ── Mode tabs: Installed Mods ⇄ Steam Workshop ─────────────────────────────────
+function setMode(mode){
+  currentMode = mode
+  if(mode==='workshop'){ show('workshop'); loadWorkshop() }
+  else {
+    if(scannedMods.length) show('list')
+    else if(activeGame) startScan(activeGame)
+    else show('game')
+  }
 }
 
 // ── Game picker ───────────────────────────────────────────────────────────────
@@ -422,6 +468,94 @@ function goRework(id,e){
 function rescan(){ if(activeGame) startScan(activeGame); else show('game') }
 
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+// ── Steam Workshop tab ─────────────────────────────────────────────────────────
+const DEMO_WORKSHOP = [
+  {id:'2100500123', fileCount:4,  size:2515000},
+  {id:'1980221548', fileCount:12, size:48000000},
+  {id:'2543109876', fileCount:2,  size:640000},
+]
+
+async function loadWorkshop(){
+  const body = document.getElementById('ws-body')
+  document.getElementById('ws-summary-bar').innerHTML=''
+
+  // Steam Workshop only applies to Steam games with a known App ID
+  if(window.MM && activeGame && activeGame.platform && activeGame.platform!=='steam'){
+    body.innerHTML = emptyStateHTML('🎮','Not a Steam game','Steam Workshop is only available for games installed through Steam.')
+    return
+  }
+
+  body.innerHTML = `<div class="scan-card">
+    <div class="scan-icon pulsing">🛠</div>
+    <div class="scan-title">Loading Workshop…</div>
+    <div class="scan-sub">Scanning your subscribed Workshop items</div>
+    <div class="progress-track"><div class="progress-fill" style="width:65%;background:var(--purple,#8b7cef);"></div></div>
+  </div>`
+
+  let items = []
+  if(window.MM){
+    if(activeGame && activeGame.appId){
+      const r = await window.MM.scanWorkshop(activeGame.appId).catch(()=>null)
+      if(r && r.success) items = r.items || []
+    }
+  } else {
+    await sleep(600)          // demo mode (browser preview)
+    items = DEMO_WORKSHOP
+  }
+  workshopItems = items
+  renderWorkshop()
+}
+
+function renderWorkshop(){
+  const n = workshopItems.length
+  document.getElementById('ws-summary-bar').innerHTML = n
+    ? `<div class="summary-chip" style="background:rgba(139,124,239,0.1);color:var(--purple,#8b7cef);">🛠 ${n} workshop item${n!==1?'s':''}</div>`
+    : ''
+  const body = document.getElementById('ws-body')
+  if(!n){
+    body.innerHTML = emptyStateHTML('📭','No Workshop mods',
+      'No Steam Workshop items are installed for '+(activeGame?activeGame.name:'this game')+'. Subscribe to mods in Steam and they will appear here.')
+    return
+  }
+  body.innerHTML = '<div class="mod-list">'+workshopItems.map(wsCardHTML).join('')+'</div>'
+}
+
+function wsCardHTML(it){
+  const url = 'https://steamcommunity.com/sharedfiles/filedetails/?id='+it.id
+  return `<div class="ws-card">
+    <div class="ws-icon">🧩</div>
+    <div style="flex:1;min-width:0;">
+      <div class="mod-name">Workshop item ${it.id}</div>
+      <div class="ws-meta">${it.fileCount||0} file${(it.fileCount||0)!==1?'s':''} · ${humanSize(it.size||0)}</div>
+    </div>
+    <a class="ws-link" onclick="openExternal('${url}')">View ↗</a>
+    <button class="repair-btn repair-btn-rework" onclick="reworkWorkshop('${it.id}')">✏️ Rework</button>
+  </div>`
+}
+
+function reworkWorkshop(id){
+  const it = workshopItems.find(x=>x.id===id)
+  if(it) localStorage.setItem('mm-rework-mod', JSON.stringify({id:'ws-'+id, name:'Workshop item '+id, file:it.path||String(id), source:'workshop'}))
+  window.location.href='modmaster-rework.html'
+}
+
+function openExternal(url){ window.open(url,'_blank') }
+
+function humanSize(b){
+  if(!b) return '0 B'
+  const u=['B','KB','MB','GB','TB']; let i=0
+  while(b>=1024 && i<u.length-1){ b/=1024; i++ }
+  return (b<10 && i>0 ? b.toFixed(1) : Math.round(b))+' '+u[i]
+}
+
+function emptyStateHTML(icon,title,text){
+  return `<div class="empty-state">
+    <div style="font-size:2.5rem;margin-bottom:1rem;">${icon}</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">${title}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;max-width:420px;margin:0 auto;">${text}</div>
+  </div>`
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init(){
