@@ -20,7 +20,7 @@ A Windows desktop app (Electron v28) that lets casual gamers create, fix, rework
 | 5 | Tool Installer (UE4SS etc.) | ✅ Done (UI shell + demo; real download/permission wiring pending) |
 | 6 | User accounts | ✅ Done (local profiles; cloud sign-in/sync pending) |
 | 7 | Community Hub | ✅ Done (shell + mock listings; live service pending) |
-| 8 | AI proxy + payments | ⏳ **Build this next** |
+| 8 | AI proxy + payments | ✅ Done (reference proxy + Plans UI; live billing/deploy pending) |
 
 ---
 
@@ -32,6 +32,7 @@ ModMaster/
 ├── LAUNCH.bat                    ← everyday launcher
 ├── START.bat / FIX-ELECTRON.bat / DEBUG.bat / UPDATER.bat
 ├── electron/                     ← DO NOT TOUCH, NOT in GitHub
+├── server/                       ← Step 8 AI proxy (zero-dep Node; deploy separately)
 └── app/
     ├── main.js                   ← Electron main process (Node.js, ~690 lines)
     ├── preload.js                 ← IPC bridge (~51 lines)
@@ -43,6 +44,7 @@ ModMaster/
         ├── modmaster-rework.html  ← Step 4 done (visual editor; demo values)
         ├── modmaster-tools.html   ← Step 5 done (tool installer; demo installs)
         ├── modmaster-account.html ← Step 6 done (local profiles; cloud pending)
+        ├── modmaster-plans.html   ← Step 8 done (Free/Pro plans; live billing pending)
         ├── modmaster-hub.html     ← Step 7 done (community hub; mock listings)
         ├── modmaster-settings.html← working settings page (359 lines)
         ├── theme.js               ← theme engine (158 lines)
