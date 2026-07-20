@@ -19,8 +19,8 @@ A Windows desktop app (Electron v28) that lets casual gamers create, fix, rework
 | 4 | Rework Mods | ✅ Done (UI shell + demo values; real mod-file parsing pending) |
 | 5 | Tool Installer (UE4SS etc.) | ✅ Done (UI shell + demo; real download/permission wiring pending) |
 | 6 | User accounts | ✅ Done (local profiles; cloud sign-in/sync pending) |
-| 7 | Community Hub | ⏳ **Build this next** |
-| 8 | AI proxy + payments | ⏳ Pending |
+| 7 | Community Hub | ✅ Done (shell + mock listings; live service pending) |
+| 8 | AI proxy + payments | ⏳ **Build this next** |
 
 ---
 
@@ -43,7 +43,7 @@ ModMaster/
         ├── modmaster-rework.html  ← Step 4 done (visual editor; demo values)
         ├── modmaster-tools.html   ← Step 5 done (tool installer; demo installs)
         ├── modmaster-account.html ← Step 6 done (local profiles; cloud pending)
-        ├── modmaster-hub.html     ← PLACEHOLDER — replace with Step 7
+        ├── modmaster-hub.html     ← Step 7 done (community hub; mock listings)
         ├── modmaster-settings.html← working settings page (359 lines)
         ├── theme.js               ← theme engine (158 lines)
         ├── sidebar.js             ← collapsible nav (152 lines)
