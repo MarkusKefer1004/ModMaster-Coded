@@ -234,7 +234,7 @@ textarea.field{resize:vertical;min-height:60px;}
       <div style="font-size:12px;color:var(--muted);" id="result-file">version saved</div>
       <ul class="changes" id="changes"></ul>
       <div class="result-actions">
-        <button class="action-btn pink" onclick="installMod()">⬇ Install to game</button>
+        <button class="action-btn pink" id="install-btn" onclick="installMod()">⬇ Install to game</button>
         <button class="action-btn" onclick="downloadMod()">💾 Download</button>
         <button class="action-btn" onclick="backToEditor()">✏️ Rework again</button>
       </div>
@@ -631,7 +631,7 @@ function backToEditor(){
 }
 
 function installMod(){
-  const btn=event.target
+  const btn=document.getElementById('install-btn')
   btn.textContent='⏳ Installing…'; btn.disabled=true
   setTimeout(()=>{
     if(window.MM && activeGame){
