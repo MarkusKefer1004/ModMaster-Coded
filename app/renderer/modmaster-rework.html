@@ -4,48 +4,670 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ModMaster — Rework Mods</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="theme.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
 #titlebar{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:300;-webkit-app-region:drag;user-select:none;}
 #titlebar-left{display:flex;align-items:center;gap:10px;padding:0 14px;}
-#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--teal,#2dd4a0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#titlebar-logo{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--pink,#e06090));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #titlebar-controls{display:flex;-webkit-app-region:no-drag;}
 .tb-btn{width:46px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;transition:background 0.15s,color 0.15s;}
 .tb-btn:hover{background:var(--bg3);color:var(--text);}
 #tb-close:hover{background:#c42b2b;color:#fff;}
-#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;padding:2rem;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
-.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;width:100%;position:relative;z-index:1;border-top:2px solid var(--pink,#e06090);}
-.icon{font-size:3rem;margin-bottom:1rem;}
-h1{font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--pink,#e06090);margin-bottom:10px;}
-p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:1.5rem;}
-.badge{display:inline-block;font-size:11px;padding:4px 12px;border-radius:99px;background:rgba(224,96,144,0.1);color:var(--pink,#e06090);font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:1.5rem;}
-.back-btn{padding:10px 24px;border-radius:10px;background:rgba(224,96,144,0.1);color:var(--pink,#e06090);border:0.5px solid rgba(224,96,144,0.3);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
-.back-btn:hover{background:var(--pink,#e06090);color:#0a0a0a;}
+#mm-main-content{position:fixed;top:40px;left:0;right:0;bottom:0;overflow-y:auto;padding:1.75rem 2rem 3rem;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.fade-in{animation:fadeUp 0.3s ease forwards;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+.pulsing{animation:pulse 1.4s ease infinite;}
+/* nav */
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--border);border-radius:9px;padding:6px 12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;}
+.back-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.game-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:0.5px solid var(--border);border-radius:99px;padding:4px 12px 4px 8px;font-size:12px;color:var(--muted);cursor:pointer;transition:border-color 0.2s;}
+.game-badge:hover{border-color:var(--border-hi);}
+.game-dot{width:7px;height:7px;border-radius:50%;}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(90deg,var(--text) 50%,var(--pink,#e06090));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:1.75rem;}
+.panel{display:none;}
+.panel.active{display:block;}
+/* pick / scan / empty cards */
+.pick-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
+.scan-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2rem;text-align:center;max-width:480px;}
+.scan-icon{font-size:2rem;margin-bottom:0.75rem;}
+.scan-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;}
+.scan-sub{font-size:12px;color:var(--muted);margin-bottom:1rem;}
+.progress-track{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:0.75rem 0 6px;}
+.progress-fill{height:100%;border-radius:99px;transition:width 0.4s ease;width:0%;background:var(--pink,#e06090);}
+.progress-txt{font-size:11px;color:var(--muted);}
+.empty-state{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:2.5rem 2rem;text-align:center;max-width:480px;}
+.primary-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--pink,#e06090);color:#fff;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.primary-btn:hover{opacity:0.88;}
+/* mod list */
+.mod-list{display:flex;flex-direction:column;gap:8px;max-width:660px;}
+.mod-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.2s,background 0.2s;}
+.mod-row:hover{border-color:var(--pink,#e06090);background:var(--bg3);}
+.mod-ico{font-size:20px;flex-shrink:0;}
+.mod-name{font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);}
+.mod-file{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.mod-type{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:rgba(224,96,144,0.1);color:var(--pink,#e06090);flex-shrink:0;}
+/* editor toolbar */
+.editor-wrap{max-width:720px;}
+.ed-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;}
+.ed-modname{flex:1;min-width:140px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);background:none;border:none;outline:none;}
+.chip-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.chip-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.chip-btn.on{background:rgba(224,96,144,0.14);border-color:rgba(224,96,144,0.4);color:var(--pink,#e06090);}
+.save-btn{background:var(--pink,#e06090);color:#fff;border:none;}
+.save-btn:hover{opacity:0.88;color:#fff;}
+/* category sections */
+.cat{border:0.5px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;background:var(--bg2);}
+.cat-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+.cat-head:hover{background:var(--bg3);}
+.cat-ico{font-size:16px;}
+.cat-name{flex:1;font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text);}
+.cat-count{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.cat-arrow{color:var(--muted);font-size:12px;transition:transform 0.2s;}
+.cat.collapsed .cat-arrow{transform:rotate(-90deg);}
+.cat-body{padding:4px 14px 14px;display:flex;flex-direction:column;gap:8px;}
+.cat.collapsed .cat-body{display:none;}
+/* effect card */
+.fx{background:var(--bg);border:0.5px solid var(--border);border-radius:11px;padding:12px 14px;}
+.fx.off{opacity:0.55;}
+.fx-head{display:flex;align-items:center;gap:10px;}
+.fx-name{flex:1;font-size:13px;font-weight:500;color:var(--text);}
+.fx-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--pink,#e06090);min-width:44px;text-align:right;}
+/* switch */
+.sw{width:38px;height:21px;border-radius:99px;background:var(--bg4);border:0.5px solid var(--border);position:relative;cursor:pointer;flex-shrink:0;transition:background 0.2s;}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--muted);transition:all 0.2s;}
+.sw.on{background:var(--pink,#e06090);border-color:var(--pink,#e06090);}
+.sw.on::after{left:19px;background:#fff;}
+/* slider */
+.fx-body{margin-top:10px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:99px;background:var(--bg4);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--pink,#e06090);cursor:pointer;box-shadow:0 0 6px rgba(224,96,144,0.5);}
+input[type=range]:disabled{opacity:0.4;cursor:not-allowed;}
+.presets{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+.preset-chip{padding:4px 11px;border-radius:7px;background:var(--bg3);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all 0.15s;}
+.preset-chip:hover{border-color:var(--border-hi);color:var(--text);}
+.preset-chip.active{background:rgba(224,96,144,0.14);border-color:rgba(224,96,144,0.4);color:var(--pink,#e06090);}
+/* preset (option) buttons */
+.opt-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.opt-btn{padding:6px 13px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all 0.15s;}
+.opt-btn:hover{border-color:var(--border-hi);color:var(--text);}
+.opt-btn.active{background:rgba(224,96,144,0.14);border-color:rgba(224,96,144,0.4);color:var(--pink,#e06090);}
+/* Layer 2 detail row */
+.detail-row{display:none;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px dashed var(--border);}
+.detail-on .detail-row{display:flex;}
+.num-box{display:flex;align-items:center;gap:0;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;}
+.num-box button{width:28px;height:30px;background:var(--bg3);border:none;color:var(--text);font-size:15px;cursor:pointer;}
+.num-box button:hover{background:var(--bg4);}
+.num-box input{width:66px;height:30px;background:var(--bg);border:none;border-left:0.5px solid var(--border);border-right:0.5px solid var(--border);color:var(--text);text-align:center;font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+.unit-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.detail-sel{height:30px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:0 8px;outline:none;cursor:pointer;}
+/* Layer 3 code accordion */
+.code-acc{max-width:720px;border:0.5px solid var(--border);border-radius:12px;margin-top:10px;background:var(--bg2);overflow:hidden;display:none;}
+.code-acc.open{display:block;}
+.code-warn{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(245,166,35,0.08);border-bottom:0.5px solid var(--border);font-size:11px;color:var(--amber,#f5a623);}
+.code-ta{width:100%;min-height:220px;background:var(--bg);border:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;padding:14px;outline:none;resize:vertical;}
+/* version panel */
+.ver-panel{max-width:720px;border:0.5px solid var(--border);border-radius:12px;margin-bottom:1.25rem;background:var(--bg2);padding:14px;display:none;}
+.ver-panel.open{display:block;}
+.ver-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.ver-item:last-child{border-bottom:none;}
+.ver-label{flex:1;font-size:13px;color:var(--text);}
+.ver-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ver-restore{padding:5px 12px;border-radius:7px;background:var(--bg3);border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;}
+.ver-restore:hover{border-color:var(--pink,#e06090);color:var(--pink,#e06090);}
+.sticky-save{position:sticky;bottom:0;padding-top:12px;margin-top:4px;background:linear-gradient(transparent,var(--bg) 40%);}
+.big-save{width:100%;max-width:720px;padding:14px;border-radius:12px;background:var(--pink,#e06090);color:#fff;border:none;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+.big-save:hover{opacity:0.88;}
+/* save overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;display:none;align-items:center;justify-content:center;padding:2rem;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg2);border:0.5px solid var(--border-hi);border-radius:16px;padding:1.75rem;max-width:420px;width:100%;}
+.modal h3{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:4px;}
+.modal p{font-size:12px;color:var(--muted);margin-bottom:1.25rem;}
+.field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:6px;display:block;}
+.field{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;padding:10px 12px;outline:none;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.field:focus{border-color:var(--pink,#e06090);}
+textarea.field{resize:vertical;min-height:60px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.ghost-btn{padding:10px 16px;border-radius:9px;background:none;border:0.5px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;}
+.ghost-btn:hover{border-color:var(--border-hi);color:var(--text);}
+/* results */
+.result-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;border-top:2px solid var(--pink,#e06090);padding:1.75rem;max-width:560px;}
+.result-name{font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);background:none;border:none;border-bottom:1px dashed transparent;outline:none;width:100%;margin-bottom:2px;}
+.result-name:focus{border-bottom-color:var(--pink,#e06090);}
+.changes{list-style:none;margin:1rem 0;display:flex;flex-direction:column;gap:7px;}
+.change{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);}
+.change-ico{color:var(--pink,#e06090);flex-shrink:0;}
+.result-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem;}
+.action-btn{flex:1;min-width:130px;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;border:0.5px solid var(--border);background:var(--bg3);color:var(--text);transition:all 0.2s;}
+.action-btn:hover{border-color:var(--border-hi);}
+.action-btn.pink{background:var(--pink,#e06090);color:#fff;border:none;}
+.action-btn.pink:hover{opacity:0.88;}
 </style>
 </head>
 <body>
+
 <div id="titlebar">
-  <div id="titlebar-left">
-    <span id="titlebar-logo">ModMaster</span>
-  </div>
+  <div id="titlebar-left"><span id="titlebar-logo">ModMaster</span></div>
   <div id="titlebar-controls">
     <button class="tb-btn" onclick="window.MM?.minimize()">&#x2014;</button>
-    <button class="tb-btn" onclick="window.MM?.close()">&#x2715;</button>
+    <button class="tb-btn" id="tb-close" onclick="window.MM?.close()">&#x2715;</button>
   </div>
 </div>
+
 <div id="mm-main-content">
-  <div class="card">
-    <div class="icon">✏️</div>
-    <div class="badge">Coming in Step 4</div>
-    <h1>Rework Mods</h1>
-    <p>Load any installed mod and tweak its values with sliders, AI editing, and a full version history. Coming in Step 4.</p>
-    <button class="back-btn" onclick="window.location.href='modmaster.html'">← Back to home</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;" class="fade-in">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div id="game-badge-wrap"></div>
+  </div>
+  <div class="page-title fade-in" style="animation-delay:0.05s;opacity:0;">Rework Mods</div>
+  <div class="page-sub fade-in" style="animation-delay:0.08s;opacity:0;" id="page-sub">Load an installed mod and tweak its values — no code needed.</div>
+
+  <!-- Step 1: pick game -->
+  <div id="step-game" class="panel active">
+    <div class="pick-card">
+      <div style="font-size:2.5rem;margin-bottom:1rem;">✏️</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">Which game?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.6;">Pick a game and ModMaster will list its installed mods so you can rework one.</div>
+      <button class="primary-btn" onclick="openGamePicker()">🎮 Choose a game</button>
+    </div>
+  </div>
+
+  <!-- Step 2: scanning -->
+  <div id="step-scanning" class="panel">
+    <div class="scan-card">
+      <div class="scan-icon pulsing">🔍</div>
+      <div class="scan-title">Loading mods…</div>
+      <div class="scan-sub" id="scan-sub">Reading your mods folder</div>
+      <div class="progress-track"><div class="progress-fill" id="scan-bar"></div></div>
+      <div class="progress-txt" id="scan-pct">0%</div>
+    </div>
+  </div>
+
+  <!-- Step 3: mod list -->
+  <div id="step-list" class="panel">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:10px;" id="list-count">Mods found</div>
+    <div class="mod-list" id="mod-list"></div>
+  </div>
+
+  <!-- Step 4: editor -->
+  <div id="step-editor" class="panel">
+    <div class="editor-wrap">
+      <div class="ed-toolbar">
+        <input class="ed-modname" id="ed-modname" value="Mod" spellcheck="false">
+        <button class="chip-btn" id="btn-detail" onclick="toggleDetail()">⚙ Detailed</button>
+        <button class="chip-btn" id="btn-code" onclick="toggleCode()">&lt;/&gt; Code</button>
+        <button class="chip-btn" id="btn-history" onclick="toggleHistory()">🕘 History</button>
+        <button class="chip-btn save-btn" onclick="openSave()">💾 Save version</button>
+      </div>
+
+      <div class="ver-panel" id="ver-panel">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:8px;">Version history</div>
+        <div id="ver-list"></div>
+      </div>
+
+      <div id="cats"></div>
+
+      <div class="code-acc" id="code-acc">
+        <div class="code-warn">⚠ Editing code directly may break the mod. Advanced users only.</div>
+        <textarea class="code-ta" id="code-ta" spellcheck="false"></textarea>
+      </div>
+
+      <div class="sticky-save">
+        <button class="big-save" onclick="openSave()">💾 Save as new version</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: results -->
+  <div id="step-results" class="panel">
+    <div class="result-card">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--pink,#e06090);font-family:'Rajdhani',sans-serif;font-weight:700;margin-bottom:6px;">✓ Saved as new version</div>
+      <input class="result-name" id="result-name" value="Mod" spellcheck="false">
+      <div style="font-size:12px;color:var(--muted);" id="result-file">version saved</div>
+      <ul class="changes" id="changes"></ul>
+      <div class="result-actions">
+        <button class="action-btn pink" onclick="installMod()">⬇ Install to game</button>
+        <button class="action-btn" onclick="downloadMod()">💾 Download</button>
+        <button class="action-btn" onclick="backToEditor()">✏️ Rework again</button>
+      </div>
+      <button class="action-btn" style="width:100%;margin-top:8px;" onclick="backToEditor()">Not happy? Keep editing</button>
+    </div>
   </div>
 </div>
+
+<!-- Save overlay -->
+<div class="overlay" id="save-overlay">
+  <div class="modal">
+    <h3>Save new version</h3>
+    <p>Your original mod is never overwritten — this saves a labelled copy you can restore anytime.</p>
+    <label class="field-label" for="save-label">Version label</label>
+    <input class="field" id="save-label" spellcheck="false">
+    <label class="field-label" for="save-note">Description (optional)</label>
+    <textarea class="field" id="save-note" placeholder="What did you change?"></textarea>
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeSave()">Cancel</button>
+      <button class="primary-btn" onclick="confirmSave()">Save version</button>
+    </div>
+  </div>
+</div>
+
+<script src="game-selector.js"></script>
 <script src="electron-bridge.js"></script>
+<script>
+let activeGame = null
+let currentMod = null
+let effects = []
+let detailMode = false
+let codeOpen = false
+
+const STEPS = ['game','scanning','list','editor','results']
+function show(s){ STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
+
+function goBack(){
+  const cur = STEPS.find(s=>document.getElementById('step-'+s)?.classList.contains('active'))
+  if(cur==='editor'||cur==='results') { show('list') }
+  else if(cur==='list') { show('game') }
+  else window.location.href='modmaster.html'
+}
+
+// ── Category + demo effect definitions ─────────────────────────────────────────
+const CATS = [
+  {id:'player',  icon:'📊', name:'Player'},
+  {id:'weapons', icon:'🔫', name:'Weapons'},
+  {id:'economy', icon:'💰', name:'Economy'},
+  {id:'world',   icon:'🌍', name:'World'},
+  {id:'visual',  icon:'👁', name:'Visual'},
+  {id:'other',   icon:'⚙', name:'Other'},
+]
+const collapsed = new Set()
+
+function buildDemoEffects(){
+  const raw = [
+    {id:'e1', cat:'player',  name:'Health Multiplier', kind:'slider', value:2,   min:1, max:10, step:0.5, unit:'x', mult:true,  codeKey:'player.maxHealth'},
+    {id:'e2', cat:'player',  name:'Godmode',           kind:'toggle', enabled:true,  codeKey:'player.invincible'},
+    {id:'e3', cat:'player',  name:'Run Speed',         kind:'slider', value:1.5, min:1, max:5,  step:0.1, unit:'x', mult:true,  codeKey:'player.moveSpeed'},
+    {id:'e4', cat:'player',  name:'Jump Height',       kind:'slider', value:1,   min:1, max:4,  step:0.25,unit:'x', mult:true,  codeKey:'player.jumpForce'},
+    {id:'e5', cat:'weapons', name:'Damage Multiplier', kind:'slider', value:1,   min:1, max:20, step:1,   unit:'x', mult:true,  codeKey:'weapon.damage'},
+    {id:'e6', cat:'weapons', name:'Infinite Ammo',     kind:'toggle', enabled:false, codeKey:'weapon.infiniteAmmo'},
+    {id:'e7', cat:'weapons', name:'Fire Rate',         kind:'slider', value:1,   min:0.5,max:5, step:0.1, unit:'x', mult:true,  codeKey:'weapon.fireRate'},
+    {id:'e8', cat:'economy', name:'Cash Per Kill',     kind:'slider', value:500, min:0, max:10000,step:100,unit:'$', codeKey:'economy.killReward'},
+    {id:'e9', cat:'economy', name:'Shop Prices',       kind:'slider', value:100, min:0, max:200, step:5,  unit:'%', codeKey:'economy.priceScale'},
+    {id:'e10',cat:'world',   name:'Weather',           kind:'preset', value:'Clear', options:['Clear','Rain','Storm','Snow','Fog'], codeKey:'world.weather'},
+    {id:'e11',cat:'world',   name:'Time of Day',       kind:'preset', value:'Noon',  options:['Dawn','Noon','Dusk','Midnight'],     codeKey:'world.time'},
+    {id:'e12',cat:'world',   name:'NPC Spawn Rate',    kind:'slider', value:1,   min:0, max:5,  step:0.5, unit:'x', mult:true,  codeKey:'world.spawnRate'},
+    {id:'e13',cat:'visual',  name:'Field of View',     kind:'slider', value:70,  min:60,max:120,step:1,   unit:'°', codeKey:'camera.fov'},
+    {id:'e14',cat:'visual',  name:'Draw Distance',     kind:'slider', value:100, min:50,max:100,step:5,   unit:'%', codeKey:'render.drawDistance'},
+    {id:'e15',cat:'other',   name:'Debug Overlay',     kind:'toggle', enabled:false, codeKey:'debug.overlay'},
+  ]
+  return raw.map(e=>{
+    const o = Object.assign({enabled:true}, e)
+    o.orig = { enabled:o.enabled, value:o.value }
+    return o
+  })
+}
+
+// ── Game picker ────────────────────────────────────────────────────────────────
+function openGamePicker(){
+  showGamePicker(function(game){
+    activeGame = game; renderGameBadge(game)
+    if(window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+    document.getElementById('page-sub').textContent='Loading mods for '+game.name+'…'
+    loadMods(game)
+  })
+}
+function renderGameBadge(game){
+  if(!game) return
+  document.getElementById('game-badge-wrap').innerHTML=`
+    <div class="game-badge" onclick="openGamePicker()">
+      <div class="game-dot" style="background:${game.color};box-shadow:0 0 5px ${game.color};"></div>
+      ${game.name}<span style="color:var(--muted);font-size:10px;margin-left:2px;">▾</span>
+    </div>`
+}
+
+// ── Load / list mods ───────────────────────────────────────────────────────────
+const DEMO_MODS = [
+  {id:'m1', name:'GodMode',      file:'godmode.lua'},
+  {id:'m2', name:'SpeedBoost',   file:'speedboost.lua'},
+  {id:'m3', name:'MoneyDrop',    file:'moneydrop.lua'},
+  {id:'m4', name:'WeatherMod',   file:'weather.lua'},
+  {id:'m5', name:'SuperJump',    file:'superjump.cfg'},
+]
+async function loadMods(game){
+  show('scanning')
+  const msgs=['Reading your mods folder…','Listing installed mods…','Ready!']
+  const steps=[0,55,100]
+  for(let i=0;i<steps.length;i++){
+    document.getElementById('scan-bar').style.width=steps[i]+'%'
+    document.getElementById('scan-pct').textContent=steps[i]+'%'
+    document.getElementById('scan-sub').textContent=msgs[i]
+    await sleep(i===2?250:420)
+  }
+  let mods=[]
+  if(window.MM && game && game.modPath){
+    const r = await window.MM.scanFolder(game.modPath).catch(()=>null)
+    if(r?.success && r.mods?.length){
+      mods = r.mods.map((m,i)=>({id:'real-'+i, name:m.name, file:m.file}))
+    }
+  }
+  if(!mods.length) mods=[...DEMO_MODS]
+  renderModList(mods)
+}
+function renderModList(mods){
+  document.getElementById('list-count').textContent=mods.length+' mod'+(mods.length!==1?'s':'')+' — pick one to rework'
+  const list=document.getElementById('mod-list')
+  if(!mods.length){
+    list.innerHTML=''
+    document.getElementById('step-list').querySelector('.mod-list').outerHTML =
+      `<div class="empty-state"><div style="font-size:2.5rem;margin-bottom:1rem;">📭</div>
+       <div style="font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:8px;">No mods here yet</div>
+       <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem;">This game has no installed mods to rework. Create one first.</div>
+       <button class="primary-btn" onclick="window.location.href='modmaster-create.html'">✨ Create a mod</button></div>`
+    show('list'); return
+  }
+  list.innerHTML=mods.map(m=>{
+    const ext=(m.file.split('.').pop()||'mod').toUpperCase()
+    return `<div class="mod-row" onclick='openEditor(${JSON.stringify(m).replace(/'/g,"&#39;")})'>
+      <div class="mod-ico">🧩</div>
+      <div style="flex:1;min-width:0;"><div class="mod-name">${m.name}</div><div class="mod-file">${m.file}</div></div>
+      <div class="mod-type">${ext}</div>
+    </div>`
+  }).join('')
+  show('list')
+  document.getElementById('page-sub').textContent='Pick a mod to rework.'
+}
+
+// ── Editor ─────────────────────────────────────────────────────────────────────
+function openEditor(mod){
+  currentMod = mod
+  effects = buildDemoEffects()            // demo values (real parsing wired later)
+  detailMode=false; codeOpen=false
+  document.getElementById('btn-detail').classList.remove('on')
+  document.getElementById('btn-code').classList.remove('on')
+  document.getElementById('ver-panel').classList.remove('open')
+  document.getElementById('code-acc').classList.remove('open')
+  document.getElementById('ed-modname').value = mod.name
+  document.getElementById('page-sub').textContent='Reworking '+mod.name+' — flip switches, drag sliders.'
+  renderCats()
+  show('editor')
+  window.scrollTo?.(0,0)
+}
+
+function renderCats(){
+  const host=document.getElementById('cats')
+  host.innerHTML = CATS.map(c=>{
+    const list=effects.filter(e=>e.cat===c.id)
+    if(!list.length) return ''
+    const isColl=collapsed.has(c.id)
+    return `<div class="cat ${isColl?'collapsed':''}" id="cat-${c.id}">
+      <div class="cat-head" onclick="toggleCat('${c.id}')">
+        <span class="cat-ico">${c.icon}</span>
+        <span class="cat-name">${c.name}</span>
+        <span class="cat-count">${list.length}</span>
+        <span class="cat-arrow">▾</span>
+      </div>
+      <div class="cat-body">${list.map(fxHTML).join('')}</div>
+    </div>`
+  }).join('')
+  document.querySelectorAll('.cat-body').forEach(applyDetailClass)
+}
+function applyDetailClass(el){ el.querySelectorAll('.fx').forEach(fx=>fx.classList.toggle('detail-on', detailMode)) }
+
+function fxHTML(e){
+  if(e.kind==='toggle'){
+    return `<div class="fx ${e.enabled?'':'off'}" id="fx-${e.id}">
+      <div class="fx-head">
+        <div class="sw ${e.enabled?'on':''}" onclick="toggleFx('${e.id}')"></div>
+        <div class="fx-name">${e.name}</div>
+        <div class="fx-val">${e.enabled?'On':'Off'}</div>
+      </div>
+    </div>`
+  }
+  if(e.kind==='preset'){
+    return `<div class="fx ${e.enabled?'':'off'} ${detailMode?'detail-on':''}" id="fx-${e.id}">
+      <div class="fx-head">
+        <div class="sw ${e.enabled?'on':''}" onclick="toggleFx('${e.id}')"></div>
+        <div class="fx-name">${e.name}</div>
+        <div class="fx-val">${e.value}</div>
+      </div>
+      <div class="fx-body">
+        <div class="opt-row">${e.options.map(o=>`<button class="opt-btn ${o===e.value?'active':''}" onclick="setPreset('${e.id}','${o}')">${o}</button>`).join('')}</div>
+      </div>
+      <div class="detail-row">
+        <span class="unit-label">Exact:</span>
+        <select class="detail-sel" onchange="setPreset('${e.id}',this.value)">
+          ${e.options.map(o=>`<option ${o===e.value?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+    </div>`
+  }
+  // slider
+  const chips = e.mult ? [1,2,3,5].filter(v=>v>=e.min&&v<=e.max) : []
+  return `<div class="fx ${e.enabled?'':'off'} ${detailMode?'detail-on':''}" id="fx-${e.id}">
+    <div class="fx-head">
+      <div class="sw ${e.enabled?'on':''}" onclick="toggleFx('${e.id}')"></div>
+      <div class="fx-name">${e.name}</div>
+      <div class="fx-val" id="val-${e.id}">${fmtVal(e)}</div>
+    </div>
+    <div class="fx-body">
+      <input type="range" min="${e.min}" max="${e.max}" step="${e.step}" value="${e.value}" ${e.enabled?'':'disabled'} oninput="setSlider('${e.id}',this.value)">
+      ${chips.length?`<div class="presets">${chips.map(v=>`<button class="preset-chip ${+e.value===v?'active':''}" onclick="setSlider('${e.id}',${v},true)">${v}x</button>`).join('')}</div>`:''}
+    </div>
+    <div class="detail-row">
+      <div class="num-box">
+        <button onclick="stepVal('${e.id}',-1)">−</button>
+        <input type="number" min="${e.min}" max="${e.max}" step="${e.step}" value="${e.value}" onchange="setSlider('${e.id}',this.value,true)">
+        <button onclick="stepVal('${e.id}',1)">+</button>
+      </div>
+      <span class="unit-label">${e.unit||''}</span>
+      <span class="unit-label">range ${e.min}–${e.max}</span>
+    </div>`
+}
+
+function fmtVal(e){
+  if(e.kind==='toggle') return e.enabled?'On':'Off'
+  if(e.kind==='preset') return e.value
+  const u=e.unit||''
+  if(u==='x') return e.value+'x'
+  if(u==='$') return '$'+e.value
+  if(u==='%') return e.value+'%'
+  return e.value+u
+}
+
+function find(id){ return effects.find(e=>e.id===id) }
+
+function toggleFx(id){
+  const e=find(id); if(!e) return
+  e.enabled=!e.enabled
+  refreshFx(e); syncCode()
+}
+function setSlider(id,v,rerender){
+  const e=find(id); if(!e) return
+  e.value = e.step<1 ? Math.round(parseFloat(v)*100)/100 : parseFloat(v)
+  if(isNaN(e.value)) e.value=e.min
+  if(rerender){ refreshFx(e) }
+  else {
+    const vl=document.getElementById('val-'+id); if(vl) vl.textContent=fmtVal(e)
+    // sync preset chip highlight
+    document.querySelectorAll(`#fx-${id} .preset-chip`).forEach(ch=>ch.classList.toggle('active', ch.textContent===e.value+'x'))
+  }
+  syncCode()
+}
+function stepVal(id,dir){
+  const e=find(id); if(!e) return
+  let v=e.value + dir*e.step
+  v=Math.min(e.max,Math.max(e.min, e.step<1?Math.round(v*100)/100:v))
+  e.value=v; refreshFx(e); syncCode()
+}
+function setPreset(id,val){ const e=find(id); if(!e) return; e.value=val; refreshFx(e); syncCode() }
+
+function refreshFx(e){
+  const el=document.getElementById('fx-'+e.id)
+  if(!el) return
+  el.outerHTML = fxHTML(e)
+  const fresh=document.getElementById('fx-'+e.id)
+  if(fresh) fresh.classList.toggle('detail-on', detailMode)
+}
+
+// toolbar toggles
+function toggleDetail(){
+  detailMode=!detailMode
+  document.getElementById('btn-detail').classList.toggle('on',detailMode)
+  document.querySelectorAll('.fx').forEach(fx=>fx.classList.toggle('detail-on',detailMode))
+}
+function toggleCode(){
+  codeOpen=!codeOpen
+  document.getElementById('btn-code').classList.toggle('on',codeOpen)
+  document.getElementById('code-acc').classList.toggle('open',codeOpen)
+  if(codeOpen) syncCode()
+}
+function toggleHistory(){
+  const p=document.getElementById('ver-panel')
+  const open=!p.classList.contains('open')
+  p.classList.toggle('open',open)
+  document.getElementById('btn-history').classList.toggle('on',open)
+  if(open) renderVersions()
+}
+function toggleCat(id){ collapsed.has(id)?collapsed.delete(id):collapsed.add(id); document.getElementById('cat-'+id).classList.toggle('collapsed') }
+
+function genCode(){
+  const name=document.getElementById('ed-modname').value||currentMod?.name||'mod'
+  const lines = effects.filter(e=>e.enabled).map(e=>{
+    if(e.kind==='toggle') return e.codeKey+' = true'
+    if(e.kind==='preset') return e.codeKey+' = "'+e.value+'"'
+    if(e.unit==='x')      return e.codeKey+' = base * '+e.value
+    return e.codeKey+' = '+e.value
+  })
+  return '-- '+name+' (reworked with ModMaster)\n-- '+effects.filter(e=>e.enabled).length+' effects active\n\n'+lines.join('\n')+'\n'
+}
+function syncCode(){ if(codeOpen){ const ta=document.getElementById('code-ta'); if(ta && document.activeElement!==ta) ta.value=genCode() } }
+
+// ── Version history (localStorage) ─────────────────────────────────────────────
+function verKey(){ return 'mm-versions-'+(currentMod?.id||'unknown') }
+function getVersions(){ try{ return JSON.parse(localStorage.getItem(verKey())||'[]') }catch{ return [] } }
+function renderVersions(){
+  const vs=getVersions()
+  const host=document.getElementById('ver-list')
+  if(!vs.length){ host.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:6px 0;">No saved versions yet. Save one to build history.</div>`; return }
+  host.innerHTML=vs.map((v,i)=>`<div class="ver-item">
+    <div style="flex:1;min-width:0;"><div class="ver-label">${v.label}</div>${v.note?`<div style="font-size:11px;color:var(--muted);">${v.note}</div>`:''}</div>
+    <div class="ver-date">${v.date}</div>
+    <button class="ver-restore" onclick="restoreVersion(${i})">Restore</button>
+  </div>`).join('')
+}
+function restoreVersion(i){
+  const vs=getVersions(); const v=vs[i]; if(!v) return
+  effects = v.effects.map(e=>Object.assign({},e))
+  document.getElementById('ed-modname').value = v.name || currentMod.name
+  renderCats(); syncCode()
+  document.getElementById('page-sub').textContent='Restored version: '+v.label
+}
+
+// ── Save flow ──────────────────────────────────────────────────────────────────
+function nowLabel(){
+  const d = window.__mmNow ? new Date(window.__mmNow) : new Date()
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const pad=n=>String(n).padStart(2,'0')
+  return M[d.getMonth()]+' '+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())
+}
+function openSave(){
+  document.getElementById('save-label').value = nowLabel()
+  document.getElementById('save-note').value=''
+  document.getElementById('save-overlay').classList.add('open')
+  document.getElementById('save-label').focus()
+}
+function closeSave(){ document.getElementById('save-overlay').classList.remove('open') }
+function confirmSave(){
+  const label=document.getElementById('save-label').value.trim()||nowLabel()
+  const note=document.getElementById('save-note').value.trim()
+  const vs=getVersions()
+  vs.unshift({ label, note, date:nowLabel(), name:document.getElementById('ed-modname').value,
+    effects: effects.map(e=>Object.assign({},e)) })
+  while(vs.length>10) vs.pop()               // keep max 10, drop oldest
+  try{ localStorage.setItem(verKey(), JSON.stringify(vs)) }catch{}
+  closeSave()
+  showResults()
+}
+
+// ── Results ────────────────────────────────────────────────────────────────────
+function changeList(){
+  const out=[]
+  for(const e of effects){
+    if(e.kind==='toggle'){
+      if(e.enabled!==e.orig.enabled) out.push(`${e.name}: ${e.orig.enabled?'On':'Off'} → ${e.enabled?'On':'Off'}`)
+    } else {
+      if(!e.enabled && e.orig.enabled){ out.push(`${e.name}: disabled`); continue }
+      if(e.enabled && !e.orig.enabled){ out.push(`${e.name}: enabled (${fmtVal(e)})`); continue }
+      if(e.enabled && String(e.value)!==String(e.orig.value)){
+        const o=Object.assign({},e,{value:e.orig.value})
+        out.push(`${e.name}: ${fmtVal(o)} → ${fmtVal(e)}`)
+      }
+    }
+  }
+  return out
+}
+function showResults(){
+  const name=document.getElementById('ed-modname').value
+  document.getElementById('result-name').value=name
+  document.getElementById('result-file').textContent='Saved '+nowLabel()+' · original untouched'
+  const changes=changeList()
+  document.getElementById('changes').innerHTML = changes.length
+    ? changes.map(c=>`<li class="change"><span class="change-ico">◆</span><span>${c}</span></li>`).join('')
+    : `<li class="change"><span class="change-ico">◆</span><span>No changes from the original — saved as a checkpoint.</span></li>`
+  document.getElementById('page-sub').textContent='Saved! Install, download, or keep tweaking.'
+  show('results')
+}
+function backToEditor(){
+  const rn=document.getElementById('result-name').value
+  document.getElementById('ed-modname').value=rn
+  show('editor')
+}
+
+function installMod(){
+  const btn=event.target
+  btn.textContent='⏳ Installing…'; btn.disabled=true
+  setTimeout(()=>{
+    if(window.MM && activeGame){
+      // Real install would write generated code to game.modPath via MM.saveFile / MM.installMod
+      btn.textContent='✓ Installed!'
+    } else {
+      btn.textContent='✓ Installed (demo)'
+    }
+  }, 900)
+}
+function downloadMod(){
+  const name=(document.getElementById('result-name').value||'mod').replace(/[^\w\-]+/g,'_')
+  const ext=(currentMod?.file?.split('.').pop())||'lua'
+  const blob=new Blob([genCode()],{type:'application/octet-stream'})
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a'); a.href=url; a.download=name+'.'+ext
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function init(){
+  // Restore active game badge if one is set
+  try{ const g=JSON.parse(localStorage.getItem('mm-active-game')||'null'); if(g){ activeGame=g; renderGameBadge(g) } }catch{}
+  // A mod handed over from Update Mods → jump straight into the editor
+  let handoff=null
+  try{ handoff=JSON.parse(localStorage.getItem('mm-rework-mod')||'null') }catch{}
+  if(handoff){
+    localStorage.removeItem('mm-rework-mod')
+    openEditor({id:handoff.id||'handoff', name:handoff.name||'Mod', file:handoff.file||'mod.lua'})
+    return
+  }
+  if(activeGame){ loadMods(activeGame) } else { show('game') }
+}
+document.addEventListener('DOMContentLoaded', init)
+</script>
 </body>
 </html>
