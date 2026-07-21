@@ -433,6 +433,9 @@ ipcMain.handle('detect-games', async () => {
     }
   } catch {}
 
+  // User-added custom games (always included so they persist across launches)
+  try { for (const g of (loadConfig().customGames || [])) detected.push({ ...g, custom: true }) } catch {}
+
   // Dedup by game name — native passes run first, so accurate entries win
   const seen = new Set()
   return detected.filter(g => { if (seen.has(g.name)) return false; seen.add(g.name); return true })
@@ -451,6 +454,34 @@ ipcMain.handle('scan-location', async (e, opts) => {
     const games = found.filter(g => { if (seen.has(g.name)) return false; seen.add(g.name); return true })
     return { success: true, games }
   } catch (err) { return { success: false, error: err.message, games: [] } }
+})
+
+// ── User-added custom games (persist in config, included in detect-games) ─────
+ipcMain.handle('get-custom-games', async () => loadConfig().customGames || [])
+ipcMain.handle('add-custom-game', async (e, game) => {
+  try {
+    if (!game || !game.gamePath) return { success: false, error: 'no_path' }
+    const c = loadConfig(); c.customGames = c.customGames || []
+    const name = (game.name || path.basename(game.gamePath) || 'Custom game').trim()
+    const entry = {
+      id: game.id || ('custom-' + name.toLowerCase().replace(/\s+/g, '-')),
+      name, folderName: path.basename(game.gamePath),
+      gamePath: game.gamePath,
+      modPath: game.modPath || game.gamePath,
+      modFolderExists: fs.existsSync(game.modPath || game.gamePath),
+      color: game.color || '#8a92a6', publisher: game.publisher || 'Custom',
+      platform: game.platform || 'other', appId: game.appId || null,
+      isXbox: !!game.isXbox, custom: true,
+    }
+    c.customGames = c.customGames.filter(g => g.gamePath !== entry.gamePath && g.id !== entry.id)
+    c.customGames.push(entry)
+    saveConfig(c)
+    return { success: true, game: entry }
+  } catch (err) { return { success: false, error: err.message } }
+})
+ipcMain.handle('remove-custom-game', async (e, id) => {
+  const c = loadConfig(); c.customGames = (c.customGames || []).filter(g => g.id !== id); saveConfig(c)
+  return { success: true }
 })
 
 // ── Steam Workshop ────────────────────────────────────────────────────────────

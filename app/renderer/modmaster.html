@@ -286,7 +286,10 @@ async function scanGames(showLoading = true) {
   } catch { games = MM_GameSelector.getAll() }
 
   allGames = games
-  window._MMGames = games
+  // Ensure user-added custom games are present (detect-games already includes them
+  // in the Electron app; this also covers the browser/demo path).
+  try { const cg = await loadCustomGames(); for (const g of cg) if (!allGames.some(x => x.name === g.name)) allGames.push(g) } catch {}
+  window._MMGames = allGames
   renderGames()
 
   icon.textContent = '🔍'; txt.textContent = 'Scan'
@@ -312,8 +315,9 @@ function gameCardHTML(g) {
   return `<div class="game-card" data-id="${g.id}" onclick="selectGame('${g.id}')" onmouseover="this.style.borderColor='${g.color}'" onmouseout="this.style.borderColor='var(--border)'" style="border-top:2px solid ${g.color}20;">
     <div class="game-card-accent" style="background:${g.color};"></div>
     <button class="game-card-star" onclick="toggleFav('${g.id}',event)" title="${isFav?'Remove favourite':'Add to favourites'}" style="color:${isFav?'var(--amber,#f5a623)':'var(--muted)'};">${isFav?'★':'☆'}</button>
+    ${(g.custom||g.publisher==='Custom')?`<button class="game-card-star" onclick="removeCustom('${g.id}',event)" title="Remove this game" style="left:8px;right:auto;color:var(--muted);">✕</button>`:''}
     <div class="game-card-name">${g.name}</div>
-    <div class="game-card-meta">${g.version||''}</div>
+    <div class="game-card-meta">${g.version||(g.custom||g.publisher==='Custom'?'Custom game':'')}</div>
     <div class="game-card-meta" style="color:${g.color};">${(g.mods||0)} mods</div>
   </div>`
 }
@@ -342,8 +346,9 @@ async function toggleDrivePicker(forceOpen) {
   panel.style.display = open ? 'block' : 'none'
   if (!open) return
   panel.innerHTML = `<div class="drive-picker-title">Where are your games?</div>
-    <div class="drive-picker-sub">Pick a drive to scan, or browse to the exact folder (e.g. your Steam library).</div>
+    <div class="drive-picker-sub">Pick a drive to scan, browse to a folder, or add a game by hand — added games are remembered.</div>
     <div class="drive-row" id="drive-row"><span style="color:var(--muted);font-size:12px;">Finding drives…</span></div>
+    <div id="add-game-area"></div>
     <div class="drive-msg" id="drive-msg"></div>`
   let drives = []
   try { drives = window.MM ? await window.MM.listDrives() : ['C:\\', 'D:\\', 'E:\\'] } catch { drives = ['C:\\'] }
@@ -354,7 +359,81 @@ function renderDrivePicker(drives) {
   if (!row) return
   const chips = (drives || []).map(d =>
     `<button class="drive-chip" onclick="scanDrive('${d.replace(/\\/g, '\\\\')}')"><span class="dc-ico">💽</span>${d.replace(/\\$/, '')}</button>`).join('')
-  row.innerHTML = chips + `<button class="drive-chip drive-browse" onclick="browseForGames()"><span class="dc-ico">📂</span>Browse to a folder…</button>`
+  row.innerHTML = chips
+    + `<button class="drive-chip drive-browse" onclick="browseForGames()"><span class="dc-ico">📂</span>Browse to a folder…</button>`
+    + `<button class="drive-chip" onclick="openAddGameForm()" style="background:var(--teal-dim,rgba(45,212,160,0.1));border-color:rgba(45,212,160,0.3);color:var(--teal,#2dd4a0);"><span class="dc-ico">➕</span>Add a game manually</button>`
+}
+
+// ── Add a game by hand (persists across launches) ────────────────────────────
+let _newGame = { gamePath: '', name: '', modPath: '' }
+function openAddGameForm() {
+  const area = document.getElementById('add-game-area')
+  if (!area) return
+  _newGame = { gamePath: '', name: '', modPath: '' }
+  area.innerHTML = `<div style="border-top:0.5px solid var(--border);margin-top:12px;padding-top:12px;">
+    <div class="drive-picker-title">Add a game manually</div>
+    <div class="drive-picker-sub">Point ModMaster at the game's install folder.</div>
+    <div class="drive-row">
+      <button class="drive-chip" onclick="pickGameFolder()"><span class="dc-ico">📂</span><span id="ag-folder">Choose game folder…</span></button>
+    </div>
+    <div id="ag-details" style="display:none;margin-top:10px;">
+      <input id="ag-name" placeholder="Game name" spellcheck="false" style="width:100%;max-width:320px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 11px;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:8px;">
+      <div class="drive-row">
+        <button class="drive-chip drive-browse" onclick="pickModFolder()"><span class="dc-ico">🧩</span><span id="ag-mod">Mods folder: same as game</span></button>
+        <button class="drive-chip" onclick="saveNewGame()" style="background:var(--teal-dim,rgba(45,212,160,0.1));border-color:rgba(45,212,160,0.3);color:var(--teal,#2dd4a0);"><span class="dc-ico">✓</span>Add game</button>
+      </div>
+    </div>`
+}
+async function pickGameFolder() {
+  let p = null
+  try { p = window.MM ? await window.MM.browseFolder() : 'D:\\Games\\My Custom Game' } catch {}
+  if (!p) return
+  _newGame.gamePath = p; _newGame.modPath = p
+  _newGame.name = (p.replace(/[\\/]+$/, '').split(/[\\/]/).pop()) || 'Custom game'
+  const f = document.getElementById('ag-folder'); if (f) f.textContent = _newGame.name
+  const d = document.getElementById('ag-details'); if (d) d.style.display = 'block'
+  const n = document.getElementById('ag-name'); if (n) n.value = _newGame.name
+}
+async function pickModFolder() {
+  let p = null
+  try { p = window.MM ? await window.MM.browseFolder() : (_newGame.gamePath + '\\mods') } catch {}
+  if (!p) return
+  _newGame.modPath = p
+  const m = document.getElementById('ag-mod'); if (m) m.textContent = 'Mods folder: ' + p
+}
+async function saveNewGame() {
+  const name = ((document.getElementById('ag-name') || {}).value || _newGame.name || '').trim()
+  const msg = document.getElementById('drive-msg')
+  if (!_newGame.gamePath || !name) { if (msg) msg.textContent = 'Pick a game folder and a name first.'; return }
+  const game = customGameFromPath(_newGame.gamePath)
+  game.name = name
+  game.id = 'custom-' + name.toLowerCase().replace(/\s+/g, '-')
+  game.modPath = _newGame.modPath || _newGame.gamePath
+  const saved = await persistCustomGame(game)
+  mergeGames([saved])
+  const area = document.getElementById('add-game-area'); if (area) area.innerHTML = ''
+  if (msg) msg.textContent = '✓ Added "' + name + '" — it will be remembered.'
+}
+
+// ── Custom-game persistence (config via MM, or localStorage in the browser) ──
+async function loadCustomGames() {
+  try { return window.MM ? (await window.MM.getCustomGames() || []) : (JSON.parse(localStorage.getItem('mm-custom-games') || '[]')) } catch { return [] }
+}
+async function persistCustomGame(game) {
+  if (window.MM) { const r = await window.MM.addCustomGame(game); return (r && r.game) || game }
+  const list = JSON.parse(localStorage.getItem('mm-custom-games') || '[]')
+  const entry = { ...game, custom: true }
+  const next = list.filter(g => g.gamePath !== entry.gamePath && g.id !== entry.id)
+  next.push(entry); localStorage.setItem('mm-custom-games', JSON.stringify(next))
+  return entry
+}
+async function removeCustom(id, e) {
+  if (e) e.stopPropagation()
+  if (window.MM) { try { await window.MM.removeCustomGame(id) } catch {} }
+  else { const list = JSON.parse(localStorage.getItem('mm-custom-games') || '[]').filter(g => g.id !== id); localStorage.setItem('mm-custom-games', JSON.stringify(list)) }
+  allGames = allGames.filter(g => g.id !== id)
+  window._MMGames = allGames
+  renderGames()
 }
 async function scanLocationInto(path, msg) {
   if (msg) msg.textContent = 'Scanning ' + path + ' …'
@@ -376,7 +455,7 @@ async function browseForGames() {
   const msg = document.getElementById('drive-msg')
   let games = await scanLocationInto(path, msg)
   if (!games.length && confirm('No known games found there. Add that folder as a custom game anyway?')) {
-    games = [customGameFromPath(path)]
+    games = [await persistCustomGame(customGameFromPath(path))]
   }
   finishManualScan(games, path, msg)
 }
