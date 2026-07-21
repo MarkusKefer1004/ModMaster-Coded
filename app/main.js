@@ -113,6 +113,59 @@ function getSteamLibraries() {
   return [...new Set(libs.map(l => l.replace(/[\\/]+$/, '')))]
 }
 
+// ── Drive / folder scanning (auto across all drives, or a user-chosen location) ─
+function allDriveRoots() {
+  const roots = []
+  for (let c = 67; c <= 90; c++) {            // C: .. Z:
+    const r = String.fromCharCode(c) + ':\\'
+    try { if (fs.existsSync(r)) roots.push(r) } catch {}
+  }
+  return roots
+}
+// Common places games live, relative to a drive root or a chosen folder
+const COMMON_SUBPATHS = [
+  ['SteamLibrary\\steamapps\\common', 'steam'],
+  ['Steam\\steamapps\\common', 'steam'],
+  ['steamapps\\common', 'steam'],
+  ['Program Files (x86)\\Steam\\steamapps\\common', 'steam'],
+  ['Program Files\\Steam\\steamapps\\common', 'steam'],
+  ['Program Files\\Epic Games', 'epic'],
+  ['Program Files (x86)\\Epic Games', 'epic'],
+  ['Epic Games', 'epic'],
+  ['XboxGames', 'xbox'],
+  ['GOG Games', 'gog'],
+  ['GOG Galaxy\\Games', 'gog'],
+  ['Program Files (x86)\\GOG Galaxy\\Games', 'gog'],
+  ['Games', 'other'],
+]
+function guessPlatform(p) {
+  const s = String(p).toLowerCase()
+  if (s.includes('steamapps')) return 'steam'
+  if (s.includes('xboxgames')) return 'xbox'
+  if (s.includes('epic')) return 'epic'
+  if (s.includes('gog')) return 'gog'
+  return 'other'
+}
+// Match immediate subfolders of `base` against the KNOWN games list
+function scanBaseForGames(base, platform) {
+  const out = []
+  let entries; try { entries = fs.readdirSync(base, { withFileTypes: true }) } catch { return out }
+  for (const e of entries) {
+    if (!e.isDirectory()) continue
+    const found = resolveKnown(e.name)
+    if (!found) continue
+    out.push(makeGame(found.info, e.name, path.join(base, e.name), platform, null, platform === 'xbox'))
+  }
+  return out
+}
+// Scan a root (a drive like "D:\" or a folder the user picked) for games
+function scanRootForGames(root) {
+  const out = []
+  out.push(...scanBaseForGames(root, guessPlatform(root)))          // direct subfolders
+  for (const [sub, plat] of COMMON_SUBPATHS) out.push(...scanBaseForGames(path.join(root, sub), plat))
+  return out
+}
+
 let mainWindow
 let tray
 
@@ -373,30 +426,31 @@ ipcMain.handle('detect-games', async () => {
     }
   } catch {}
 
-  // Fallback: legacy fixed-path folder scan for anything the native passes missed
+  // Fallback: scan common game locations on EVERY drive (C:..Z:) for anything missed
   try {
-    const FALLBACK = {
-      steam: ['C:\\Program Files (x86)\\Steam\\steamapps\\common', 'C:\\Program Files\\Steam\\steamapps\\common',
-              'D:\\Steam\\steamapps\\common', 'D:\\SteamLibrary\\steamapps\\common',
-              'E:\\Steam\\steamapps\\common', 'E:\\SteamLibrary\\steamapps\\common',
-              'F:\\Steam\\steamapps\\common', 'F:\\SteamLibrary\\steamapps\\common'],
-      epic:  ['C:\\Program Files\\Epic Games', 'D:\\Epic Games', 'E:\\Epic Games'],
-      gog:   ['C:\\GOG Games', 'C:\\Program Files (x86)\\GOG Galaxy\\Games', 'D:\\GOG Games'],
-    }
-    for (const [platform, bases] of Object.entries(FALLBACK)) {
-      for (const base of bases) {
-        let entries; try { entries = fs.readdirSync(base, { withFileTypes: true }) } catch { continue }
-        for (const e of entries) {
-          if (!e.isDirectory() || !KNOWN[e.name]) continue
-          detected.push(makeGame(KNOWN[e.name], e.name, path.join(base, e.name), platform, null, false))
-        }
-      }
+    for (const root of allDriveRoots()) {
+      for (const g of scanRootForGames(root)) detected.push(g)
     }
   } catch {}
 
   // Dedup by game name — native passes run first, so accurate entries win
   const seen = new Set()
   return detected.filter(g => { if (seen.has(g.name)) return false; seen.add(g.name); return true })
+})
+
+// ── List available drives (C:..Z: that exist) ────────────────────────────────
+ipcMain.handle('list-drives', async () => allDriveRoots())
+
+// ── Scan a specific drive or folder the user picked ──────────────────────────
+ipcMain.handle('scan-location', async (e, opts) => {
+  try {
+    const root = opts && opts.path
+    if (!root) return { success: false, error: 'no_path', games: [] }
+    const found = scanRootForGames(root)
+    const seen = new Set()
+    const games = found.filter(g => { if (seen.has(g.name)) return false; seen.add(g.name); return true })
+    return { success: true, games }
+  } catch (err) { return { success: false, error: err.message, games: [] } }
 })
 
 // ── Steam Workshop ────────────────────────────────────────────────────────────

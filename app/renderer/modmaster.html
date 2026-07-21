@@ -78,6 +78,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .fade-up{animation:fadeUp 0.4s ease forwards;}
+/* Drive / folder picker */
+.drive-picker{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+.drive-picker-title{font-size:12px;color:var(--text);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px;}
+.drive-picker-sub{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.drive-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.drive-chip{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:9px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all 0.15s;}
+.drive-chip:hover{border-color:var(--teal,#2dd4a0);color:var(--teal,#2dd4a0);}
+.drive-chip .dc-ico{font-size:15px;}
+.drive-browse{background:none;border:0.5px dashed var(--border);color:var(--muted);}
+.drive-browse:hover{border-color:var(--border-hi);color:var(--text);}
+.drive-msg{font-size:12px;color:var(--muted);margin-top:10px;min-height:16px;}
 </style>
 </head>
 <body>
@@ -125,11 +136,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div id="game-section" class="fade-up" style="animation-delay:0.05s;opacity:0;">
     <div class="section-label">
       Your games
-      <button class="scan-btn" onclick="scanGames()" id="scan-btn">
-        <span id="scan-icon">🔍</span>
-        <span id="scan-txt">Scan</span>
-      </button>
+      <div style="display:flex;gap:6px;">
+        <button class="scan-btn" onclick="toggleDrivePicker()" id="choose-drive-btn" title="Choose a drive or folder to scan">
+          <span>📁</span><span>Choose drive</span>
+        </button>
+        <button class="scan-btn" onclick="scanGames()" id="scan-btn">
+          <span id="scan-icon">🔍</span>
+          <span id="scan-txt">Scan</span>
+        </button>
+      </div>
     </div>
+    <div class="drive-picker" id="drive-picker" style="display:none;"></div>
     <div class="games-scroll" id="games-scroll">
       <div class="no-games">Scanning for games...</div>
     </div>
@@ -278,7 +295,10 @@ async function scanGames(showLoading = true) {
 function renderGames() {
   const scroll = document.getElementById('games-scroll')
   if (!allGames.length) {
-    scroll.innerHTML = `<div class="no-games">No games detected. Click Scan or check Settings to add games manually.</div>`
+    scroll.innerHTML = `<div class="no-games" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div>No games found automatically. Tell ModMaster where your games are:</div>
+      <button class="scan-btn" onclick="toggleDrivePicker(true)" style="padding:8px 16px;"><span>📁</span><span>Choose a drive or folder</span></button>
+    </div>`
     return
   }
   const favGames   = allGames.filter(g => favourites.includes(g.id))
@@ -313,6 +333,71 @@ function selectGame(id) {
     localStorage.setItem('mm-active-game', JSON.stringify(game))
     if (window.MMTheme) window.MMTheme.applyGameTheme(game.name)
   }
+}
+
+// ── Drive / folder picker (manual "where are my games?") ────────────────────
+async function toggleDrivePicker(forceOpen) {
+  const panel = document.getElementById('drive-picker')
+  const open = forceOpen ? true : panel.style.display === 'none'
+  panel.style.display = open ? 'block' : 'none'
+  if (!open) return
+  panel.innerHTML = `<div class="drive-picker-title">Where are your games?</div>
+    <div class="drive-picker-sub">Pick a drive to scan, or browse to the exact folder (e.g. your Steam library).</div>
+    <div class="drive-row" id="drive-row"><span style="color:var(--muted);font-size:12px;">Finding drives…</span></div>
+    <div class="drive-msg" id="drive-msg"></div>`
+  let drives = []
+  try { drives = window.MM ? await window.MM.listDrives() : ['C:\\', 'D:\\', 'E:\\'] } catch { drives = ['C:\\'] }
+  renderDrivePicker(drives)
+}
+function renderDrivePicker(drives) {
+  const row = document.getElementById('drive-row')
+  if (!row) return
+  const chips = (drives || []).map(d =>
+    `<button class="drive-chip" onclick="scanDrive('${d.replace(/\\/g, '\\\\')}')"><span class="dc-ico">💽</span>${d.replace(/\\$/, '')}</button>`).join('')
+  row.innerHTML = chips + `<button class="drive-chip drive-browse" onclick="browseForGames()"><span class="dc-ico">📂</span>Browse to a folder…</button>`
+}
+async function scanLocationInto(path, msg) {
+  if (msg) msg.textContent = 'Scanning ' + path + ' …'
+  let games = []
+  try {
+    if (window.MM) { const r = await window.MM.scanLocation({ path }); if (r && r.success) games = r.games || [] }
+    else { await new Promise(r => setTimeout(r, 450)); games = MM_GameSelector.getAll() }
+  } catch {}
+  return games
+}
+async function scanDrive(path) {
+  const msg = document.getElementById('drive-msg')
+  finishManualScan(await scanLocationInto(path, msg), path, msg)
+}
+async function browseForGames() {
+  let path = null
+  try { path = window.MM ? await window.MM.browseFolder() : 'D:\\Games' } catch {}
+  if (!path) return
+  const msg = document.getElementById('drive-msg')
+  let games = await scanLocationInto(path, msg)
+  if (!games.length && confirm('No known games found there. Add that folder as a custom game anyway?')) {
+    games = [customGameFromPath(path)]
+  }
+  finishManualScan(games, path, msg)
+}
+function customGameFromPath(path) {
+  const name = (path.replace(/[\\/]+$/, '').split(/[\\/]/).pop()) || 'Custom game'
+  return { id: 'custom-' + name.toLowerCase().replace(/\s/g, '-'), name, folderName: name, gamePath: path,
+    modPath: path, modFolderExists: true, color: '#8a92a6', publisher: 'Custom', platform: 'other', appId: null, isXbox: false }
+}
+function mergeGames(newGames) {
+  const names = new Set(allGames.map(g => g.name))
+  let added = 0
+  for (const g of (newGames || [])) { if (!names.has(g.name)) { allGames.push(g); names.add(g.name); added++ } }
+  window._MMGames = allGames
+  renderGames()
+  return added
+}
+function finishManualScan(games, path, msg) {
+  const added = mergeGames(games)
+  if (msg) msg.textContent = added
+    ? '✓ Added ' + added + ' game' + (added !== 1 ? 's' : '') + ' from ' + path
+    : 'No new games found in ' + path + '.'
 }
 
 // ── Update check ──────────────────────────────────────────────────────────

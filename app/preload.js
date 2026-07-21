@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('MM', {
   browseFolder:    () => ipcRenderer.invoke('browse-folder'),
   scanFolder:   (p)   => ipcRenderer.invoke('scan-folder', p),
   detectGames:     () => ipcRenderer.invoke('detect-games'),
+  listDrives:      () => ipcRenderer.invoke('list-drives'),
+  scanLocation:(opts) => ipcRenderer.invoke('scan-location', opts),
   createModFolder:(p)  => ipcRenderer.invoke('create-mod-folder', p),
   readFile:     (p)   => ipcRenderer.invoke('read-file', p),
   saveFile:  (opts)   => ipcRenderer.invoke('save-file', opts),
