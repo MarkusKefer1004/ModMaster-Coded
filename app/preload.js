@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('MM', {
 
   // File system
   browseFolder:    () => ipcRenderer.invoke('browse-folder'),
+  openExternal:(url)  => ipcRenderer.invoke('open-external', url),
   scanFolder:   (p)   => ipcRenderer.invoke('scan-folder', p),
   detectGames:     () => ipcRenderer.invoke('detect-games'),
   listDrives:      () => ipcRenderer.invoke('list-drives'),

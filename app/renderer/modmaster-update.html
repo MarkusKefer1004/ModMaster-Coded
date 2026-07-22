@@ -513,12 +513,23 @@ function renderWorkshop(){
     ? `<div class="summary-chip" style="background:rgba(139,124,239,0.1);color:var(--purple,#8b7cef);">🛠 ${n} workshop item${n!==1?'s':''}</div>`
     : ''
   const body = document.getElementById('ws-body')
+  const publishBtn = `<button class="repair-btn repair-btn-fix" style="margin-bottom:12px;" onclick="publishToWorkshop()">🎮 Publish a mod to Steam Workshop</button>`
   if(!n){
-    body.innerHTML = emptyStateHTML('📭','No Workshop mods',
+    body.innerHTML = publishBtn + emptyStateHTML('📭','No Workshop mods',
       'No Steam Workshop items are installed for '+(activeGame?activeGame.name:'this game')+'. Subscribe to mods in Steam and they will appear here.')
     return
   }
-  body.innerHTML = '<div class="mod-list">'+workshopItems.map(wsCardHTML).join('')+'</div>'
+  body.innerHTML = publishBtn + '<div class="mod-list">'+workshopItems.map(wsCardHTML).join('')+'</div>'
+}
+// Shortcut: open the active game's Steam Workshop to publish/manage items
+function publishToWorkshop(){
+  const g = activeGame
+  if(!g || !g.appId || (g.platform && g.platform!=='steam')){
+    alert('Steam Workshop needs a Steam game. Pick one from the game badge above.')
+    return
+  }
+  openExternal('steam://url/SteamWorkshopPage/'+g.appId)
+  openExternal('https://steamcommunity.com/app/'+g.appId+'/workshop/')
 }
 
 function wsCardHTML(it){
@@ -540,7 +551,7 @@ function reworkWorkshop(id){
   window.location.href='modmaster-rework.html'
 }
 
-function openExternal(url){ window.open(url,'_blank') }
+function openExternal(url){ if(window.MM && window.MM.openExternal){ window.MM.openExternal(url) } else { window.open(url,'_blank') } }
 
 function humanSize(b){
   if(!b) return '0 B'

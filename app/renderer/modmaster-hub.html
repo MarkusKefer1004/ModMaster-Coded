@@ -146,6 +146,13 @@ textarea.field{resize:vertical;min-height:70px;}
       </div>
       <div id="share-msg" style="font-size:12.5px;color:var(--green,#4ade80);margin-top:1rem;min-height:18px;"></div>
     </div>
+
+    <div class="form-card" style="margin-top:12px;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:4px;">🎮 Publish to Steam Workshop</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;">Push a mod straight to <span id="ws-pub-game">your game</span>'s Steam Workshop.</div>
+      <button class="primary-btn" style="width:100%;" onclick="publishToWorkshop()">🎮 Open Steam Workshop</button>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5;">Opens the Workshop for your selected Steam game. Uploading happens in Steam or the game's own mod tool — ModMaster takes you straight there.</div>
+    </div>
   </div>
 </div>
 
@@ -292,6 +299,7 @@ function openShare(){
   document.getElementById('s-game').value=activeGame?activeGame.name:''
   document.getElementById('s-desc').value=''
   document.getElementById('share-msg').textContent=''
+  const wsg=document.getElementById('ws-pub-game'); if(wsg) wsg.textContent = (activeGame && activeGame.appId) ? activeGame.name : 'your game'
   show('share')
 }
 function publishShare(){
@@ -300,6 +308,17 @@ function publishShare(){
   if(!name){ msg.style.color='var(--coral,#f07050)'; msg.textContent='Please give your mod a name.'; return }
   msg.style.color='var(--green,#4ade80)'
   msg.textContent='✓ Saved! "'+name+'" will be published when the online service is live.'
+}
+function openExternal(url){ if(window.MM && window.MM.openExternal){ window.MM.openExternal(url) } else { window.open(url,'_blank') } }
+// Shortcut: open the active game's Steam Workshop (Steam client if present, else web)
+function publishToWorkshop(){
+  const g = activeGame
+  if(!g || !g.appId || (g.platform && g.platform!=='steam')){
+    alert('Pick a Steam game first — Steam Workshop needs a Steam game with a Workshop.')
+    return
+  }
+  openExternal('steam://url/SteamWorkshopPage/'+g.appId)
+  openExternal('https://steamcommunity.com/app/'+g.appId+'/workshop/')
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────

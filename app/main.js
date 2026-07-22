@@ -62,6 +62,56 @@ function makeGame(info, folderName, gamePath, platform, appId, isXbox) {
   }
 }
 
+// ── Generic game building (detect ANY installed game, not just KNOWN) ─────────
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100
+  const k = n => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
+  const to = x => Math.round(255 * x).toString(16).padStart(2, '0')
+  return '#' + to(f(0)) + to(f(8)) + to(f(4))
+}
+// Stable colour per game name (so unknown games still look distinct)
+function hashColor(s) {
+  let h = 0; for (let i = 0; i < String(s).length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return hslToHex(h % 360, 58, 62)
+}
+// Skip launcher junk and system/container folders that aren't a real game
+function isNonGame(name) {
+  const n = String(name || '')
+  if (/redist|proton|steam ?(vr|works| linux runtime| controller)|directx|vcredist|dotnet|common redistributable|_commonredist|dedicated server/i.test(n)) return true
+  if (/^(windows|program files.*|programdata|users|\$recycle\.bin|system volume information|recovery|appdata|temp|tmp|perflogs|steam|steamapps|steamlibrary|xboxgames|epic games|gog games|gog galaxy|origin games|ubisoft.*|riot games|intel|amd|nvidia|drivers|msocache|config\.msi|windows\.old)$/i.test(n.trim())) return true
+  return false
+}
+function platformPublisher(p) {
+  return ({ steam: 'Steam', epic: 'Epic Games', xbox: 'Xbox', gog: 'GOG' })[p] || 'PC'
+}
+// Guess a likely mods folder inside a game dir; fall back to the game dir itself
+function guessModFolder(gamePath) {
+  for (const sub of ['mods', 'Mods', 'Data', 'BepInEx', 'scripts', 'lml', 'nativePC']) {
+    try { if (fs.existsSync(path.join(gamePath, sub))) return path.join(gamePath, sub) } catch {}
+  }
+  return gamePath
+}
+// Build a game object for ANY game — enriched from KNOWN when recognised, else generic
+function buildGame(o) {
+  const known = resolveKnown(o.folderName, o.name)
+  const info = known ? known.info : null
+  const name = (info ? info.name : (o.name || o.folderName || 'Game')).trim()
+  const modPath = info ? path.join(o.gamePath, info.modFolder) : guessModFolder(o.gamePath)
+  return {
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'game',
+    name, folderName: o.folderName || name, gamePath: o.gamePath,
+    modPath: fs.existsSync(modPath) ? modPath : o.gamePath,
+    modFolderExists: fs.existsSync(modPath),
+    color: info ? info.color : hashColor(name),
+    publisher: info ? info.publisher : platformPublisher(o.platform),
+    platform: o.platform || 'other',
+    appId: o.appId || (info ? info.appId : null),
+    isXbox: !!o.isXbox, known: !!info,
+  }
+}
+
 // ── Windows registry helpers (native, no npm) ─────────────────────────────────
 function expandHive(k) {
   return k.replace(/^HKLM\\/i, 'HKEY_LOCAL_MACHINE\\')
@@ -146,22 +196,22 @@ function guessPlatform(p) {
   if (s.includes('gog')) return 'gog'
   return 'other'
 }
-// Match immediate subfolders of `base` against the KNOWN games list
+// Treat every immediate subfolder of `base` as a game (skipping launcher junk)
 function scanBaseForGames(base, platform) {
   const out = []
   let entries; try { entries = fs.readdirSync(base, { withFileTypes: true }) } catch { return out }
   for (const e of entries) {
-    if (!e.isDirectory()) continue
-    const found = resolveKnown(e.name)
-    if (!found) continue
-    out.push(makeGame(found.info, e.name, path.join(base, e.name), platform, null, platform === 'xbox'))
+    if (!e.isDirectory() || isNonGame(e.name)) continue
+    out.push(buildGame({ name: e.name, folderName: e.name, gamePath: path.join(base, e.name), platform, isXbox: platform === 'xbox' }))
   }
   return out
 }
-// Scan a root (a drive like "D:\" or a folder the user picked) for games
-function scanRootForGames(root) {
+// Scan a root for games. Only known game-library subpaths by default; pass
+// includeDirect=true (a folder the user explicitly picked) to also treat the
+// root's own subfolders as games.
+function scanRootForGames(root, includeDirect) {
   const out = []
-  out.push(...scanBaseForGames(root, guessPlatform(root)))          // direct subfolders
+  if (includeDirect) out.push(...scanBaseForGames(root, guessPlatform(root)))
   for (const [sub, plat] of COMMON_SUBPATHS) out.push(...scanBaseForGames(path.join(root, sub), plat))
   return out
 }
@@ -324,6 +374,14 @@ ipcMain.handle('browse-folder', async () => {
   return r.canceled ? null : r.filePaths[0]
 })
 
+// ── Open an external link (browser or Steam client) ──────────────────────────
+ipcMain.handle('open-external', async (e, url) => {
+  try {
+    if (typeof url === 'string' && /^(https?|steam):/i.test(url)) { await shell.openExternal(url); return { success: true } }
+    return { success: false, error: 'blocked' }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
 // ── Scan folder for mods ─────────────────────────────────────────────────────
 ipcMain.handle('scan-folder', async (e, folderPath) => {
   const EXTS = new Set(['.lua','.cfg','.xml','.asi','.dll','.ytd','.ydr','.ydd','.rpf','.zip','.pak','.json'])
@@ -361,12 +419,10 @@ ipcMain.handle('detect-games', async () => {
         const appId      = (acf.match(/"appid"\s+"(\d+)"/i) || [])[1]
         const installdir = (acf.match(/"installdir"\s+"([^"]+)"/i) || [])[1]
         const acfName    = (acf.match(/"name"\s+"([^"]+)"/i) || [])[1]
-        if (!installdir) continue
-        const found = resolveKnown(installdir, acfName)
-        if (!found) continue
+        if (!installdir || isNonGame(acfName || installdir)) continue
         const gamePath = path.join(steamapps, 'common', installdir)
         if (!fs.existsSync(gamePath)) continue
-        detected.push(makeGame(found.info, installdir, gamePath, 'steam', appId, false))
+        detected.push(buildGame({ name: acfName || installdir, folderName: installdir, gamePath, platform: 'steam', appId }))
       }
     }
   } catch {}
@@ -380,16 +436,15 @@ ipcMain.handle('detect-games', async () => {
       const loc = man.InstallLocation
       if (!loc || !fs.existsSync(loc)) continue
       const folder = man.MandatoryAppFolderName || path.basename(loc)
-      const found = resolveKnown(folder, man.DisplayName)
-      if (!found) continue
-      detected.push(makeGame(found.info, folder, loc, 'epic', null, false))
+      if (isNonGame(man.DisplayName || folder)) continue
+      detected.push(buildGame({ name: man.DisplayName || folder, folderName: folder, gamePath: loc, platform: 'epic' }))
     }
   } catch {}
 
   // Xbox Game Pass: scan {Drive}:\XboxGames + read MicrosoftGame.config for real title
   try {
-    for (const d of ['C', 'D', 'E', 'F', 'G']) {
-      const base = `${d}:\\XboxGames`
+    for (const root of allDriveRoots()) {
+      const base = path.join(root, 'XboxGames')
       let entries; try { entries = fs.readdirSync(base, { withFileTypes: true }) } catch { continue }
       for (const e of entries) {
         if (!e.isDirectory()) continue
@@ -405,9 +460,8 @@ ipcMain.handle('detect-games', async () => {
             if (t) { title = t; break }
           } catch {}
         }
-        const found = resolveKnown(e.name, title)
-        if (!found) continue
-        detected.push(makeGame(found.info, e.name, gamePath, 'xbox', null, true))
+        if (isNonGame(title)) continue
+        detected.push(buildGame({ name: title, folderName: e.name, gamePath, platform: 'xbox', isXbox: true }))
       }
     }
   } catch {}
@@ -419,17 +473,16 @@ ipcMain.handle('detect-games', async () => {
         const gpath = regQuery(`${root}\\${sub}`, 'path')
         const gname = regQuery(`${root}\\${sub}`, 'gameName')
         if (!gpath || !fs.existsSync(gpath)) continue
-        const found = resolveKnown(path.basename(gpath), gname)
-        if (!found) continue
-        detected.push(makeGame(found.info, path.basename(gpath), gpath, 'gog', null, false))
+        if (isNonGame(gname || path.basename(gpath))) continue
+        detected.push(buildGame({ name: gname || path.basename(gpath), folderName: path.basename(gpath), gamePath: gpath, platform: 'gog' }))
       }
     }
   } catch {}
 
-  // Fallback: scan common game locations on EVERY drive (C:..Z:) for anything missed
+  // Fallback: scan common game-library locations on EVERY drive (C:..Z:)
   try {
     for (const root of allDriveRoots()) {
-      for (const g of scanRootForGames(root)) detected.push(g)
+      for (const g of scanRootForGames(root, false)) detected.push(g)
     }
   } catch {}
 
@@ -449,7 +502,9 @@ ipcMain.handle('scan-location', async (e, opts) => {
   try {
     const root = opts && opts.path
     if (!root) return { success: false, error: 'no_path', games: [] }
-    const found = scanRootForGames(root)
+    // A folder the user browsed to → also treat its own subfolders as games (direct).
+    // A whole drive → libraries only, so we don't list Windows/Users/etc.
+    const found = scanRootForGames(root, !!(opts && opts.direct))
     const seen = new Set()
     const games = found.filter(g => { if (seen.has(g.name)) return false; seen.add(g.name); return true })
     return { success: true, games }

@@ -306,9 +306,18 @@ function renderGames() {
   }
   const favGames   = allGames.filter(g => favourites.includes(g.id))
   const otherGames = allGames.filter(g => !favourites.includes(g.id))
-  const sorted = [...favGames, ...otherGames]
+  const sorted = [...sortGames(favGames), ...sortGames(otherGames)]
   scroll.innerHTML = sorted.map(g => gameCardHTML(g)).join('')
 }
+const PLATFORM_ORDER = { steam: 0, epic: 1, xbox: 2, gog: 3, other: 4 }
+function sortGames(list) {
+  return [...list].sort((a, b) => {
+    const pa = PLATFORM_ORDER[a.platform] ?? 9, pb = PLATFORM_ORDER[b.platform] ?? 9
+    if (pa !== pb) return pa - pb
+    return (a.name || '').localeCompare(b.name || '')
+  })
+}
+function platformName(p) { return ({ steam: 'Steam', epic: 'Epic', xbox: 'Xbox', gog: 'GOG' })[p] || 'PC' }
 
 function gameCardHTML(g) {
   const isFav = favourites.includes(g.id)
@@ -317,7 +326,7 @@ function gameCardHTML(g) {
     <button class="game-card-star" onclick="toggleFav('${g.id}',event)" title="${isFav?'Remove favourite':'Add to favourites'}" style="color:${isFav?'var(--amber,#f5a623)':'var(--muted)'};">${isFav?'★':'☆'}</button>
     ${(g.custom||g.publisher==='Custom')?`<button class="game-card-star" onclick="removeCustom('${g.id}',event)" title="Remove this game" style="left:8px;right:auto;color:var(--muted);">✕</button>`:''}
     <div class="game-card-name">${g.name}</div>
-    <div class="game-card-meta">${g.version||(g.custom||g.publisher==='Custom'?'Custom game':'')}</div>
+    <div class="game-card-meta">${(g.custom||g.publisher==='Custom')?'Custom game':(platformName(g.platform)+(g.version?(' · '+g.version):''))}</div>
     <div class="game-card-meta" style="color:${g.color};">${(g.mods||0)} mods</div>
   </div>`
 }
@@ -435,25 +444,25 @@ async function removeCustom(id, e) {
   window._MMGames = allGames
   renderGames()
 }
-async function scanLocationInto(path, msg) {
+async function scanLocationInto(path, msg, direct) {
   if (msg) msg.textContent = 'Scanning ' + path + ' …'
   let games = []
   try {
-    if (window.MM) { const r = await window.MM.scanLocation({ path }); if (r && r.success) games = r.games || [] }
+    if (window.MM) { const r = await window.MM.scanLocation({ path, direct: !!direct }); if (r && r.success) games = r.games || [] }
     else { await new Promise(r => setTimeout(r, 450)); games = MM_GameSelector.getAll() }
   } catch {}
   return games
 }
 async function scanDrive(path) {
   const msg = document.getElementById('drive-msg')
-  finishManualScan(await scanLocationInto(path, msg), path, msg)
+  finishManualScan(await scanLocationInto(path, msg, false), path, msg)   // whole drive → libraries only
 }
 async function browseForGames() {
   let path = null
   try { path = window.MM ? await window.MM.browseFolder() : 'D:\\Games' } catch {}
   if (!path) return
   const msg = document.getElementById('drive-msg')
-  let games = await scanLocationInto(path, msg)
+  let games = await scanLocationInto(path, msg, true)   // picked a folder → scan its subfolders too
   if (!games.length && confirm('No known games found there. Add that folder as a custom game anyway?')) {
     games = [await persistCustomGame(customGameFromPath(path))]
   }
