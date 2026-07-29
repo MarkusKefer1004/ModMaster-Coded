@@ -97,7 +97,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div id="titlebar">
   <div id="titlebar-left">
     <span id="titlebar-logo">ModMaster</span>
-    <span id="titlebar-version">v2.0</span>
+    <span id="titlebar-version">v2.1</span>
   </div>
   <div style="display:flex;align-items:center;">
     <div id="titlebar-update">
@@ -137,6 +137,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="section-label">
       Your games
       <div style="display:flex;gap:6px;">
+        <button class="scan-btn" onclick="runDiagnostics()" id="diag-btn" title="Troubleshoot game detection">
+          <span>🔧</span><span>Diagnostics</span>
+        </button>
         <button class="scan-btn" onclick="toggleDrivePicker()" id="choose-drive-btn" title="Choose a drive or folder to scan">
           <span>📁</span><span>Choose drive</span>
         </button>
@@ -252,6 +255,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- Diagnostics modal -->
+<div id="diag-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:none;align-items:center;justify-content:center;padding:2rem;">
+  <div style="background:var(--bg2);border:0.5px solid var(--border-hi);border-radius:14px;padding:1.25rem;max-width:580px;width:100%;">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text);margin-bottom:6px;">🔧 Detection diagnostics</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">This shows what ModMaster can see. Copy it and send it over so we can find why games aren't detected.</div>
+    <textarea id="diag-text" readonly style="width:100%;height:260px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;line-height:1.5;padding:10px;outline:none;resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="scan-btn" onclick="copyDiag()">📋 Copy</button>
+      <button class="scan-btn" onclick="document.getElementById('diag-overlay').style.display='none'">Close</button>
+    </div>
   </div>
 </div>
 
@@ -515,6 +531,29 @@ function checkOutdatedMods() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
+// ── Diagnostics (troubleshoot game detection) ───────────────────────────────
+async function runDiagnostics() {
+  const ov = document.getElementById('diag-overlay'), ta = document.getElementById('diag-text')
+  ta.value = 'Running…'; ov.style.display = 'flex'
+  let dg = [], diag = {}
+  try { dg = window.MM ? (await window.MM.detectGames() || []) : (typeof MM_GameSelector !== 'undefined' ? MM_GameSelector.getAll() : []) }
+  catch (e) { diag.detectError = String(e && e.message || e) }
+  try { diag = (window.MM && window.MM.diagnoseDetection) ? await window.MM.diagnoseDetection() : { note: 'browser preview (no Electron backend)' } }
+  catch (e) { diag.diagError = String(e && e.message || e) }
+  ta.value = [
+    'ModMaster detection diagnostics (app marker v2.1)',
+    'detectGames() returned: ' + dg.length + ' game(s)',
+    'names: ' + (dg.map(g => g.name + ' [' + (g.platform || '?') + ']').join(', ') || '(none)'),
+    '',
+    JSON.stringify(diag, null, 2),
+  ].join('\n')
+}
+function copyDiag() {
+  const ta = document.getElementById('diag-text')
+  ta.select(); try { document.execCommand('copy') } catch {}
+  try { navigator.clipboard.writeText(ta.value) } catch {}
+}
+
 async function init() {
   renderAccountBtn()
   await loadFavourites()

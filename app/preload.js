@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('MM', {
   getCustomGames:  () => ipcRenderer.invoke('get-custom-games'),
   addCustomGame:(g)   => ipcRenderer.invoke('add-custom-game', g),
   removeCustomGame:(id)=> ipcRenderer.invoke('remove-custom-game', id),
+  diagnoseDetection:()=> ipcRenderer.invoke('diagnose-detection'),
   createModFolder:(p)  => ipcRenderer.invoke('create-mod-folder', p),
   readFile:     (p)   => ipcRenderer.invoke('read-file', p),
   saveFile:  (opts)   => ipcRenderer.invoke('save-file', opts),

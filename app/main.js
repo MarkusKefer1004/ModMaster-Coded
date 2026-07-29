@@ -249,6 +249,14 @@ function createWindow() {
     return { action: 'deny' }
   })
 
+  // F12 (or Ctrl+Shift+I) toggles DevTools — for troubleshooting
+  mainWindow.webContents.on('before-input-event', (e, input) => {
+    if (input.type === 'keyDown' && (input.key === 'F12' ||
+        (input.control && input.shift && String(input.key).toLowerCase() === 'i'))) {
+      mainWindow.webContents.toggleDevTools()
+    }
+  })
+
   mainWindow.on('closed', () => { mainWindow = null })
 }
 
@@ -537,6 +545,36 @@ ipcMain.handle('add-custom-game', async (e, game) => {
 ipcMain.handle('remove-custom-game', async (e, id) => {
   const c = loadConfig(); c.customGames = (c.customGames || []).filter(g => g.id !== id); saveConfig(c)
   return { success: true }
+})
+
+// ── Detection diagnostics (troubleshooting why games aren't found) ────────────
+ipcMain.handle('diagnose-detection', async () => {
+  const r = { version: '2.1', platform: process.platform, drives: [], steamPath: null, steamLibraries: [],
+              steamGamesPerLib: {}, steamSample: [], epicDir: null, epicCount: 0, xbox: [], gogKeys: 0, errors: [] }
+  const safe = (label, fn) => { try { return fn() } catch (e) { r.errors.push(label + ': ' + e.message); return undefined } }
+  r.drives = safe('drives', () => allDriveRoots()) || []
+  r.steamPath = safe('steamPath', () => regQuery('HKCU\\Software\\Valve\\Steam', 'SteamPath'))
+  r.steamLibraries = safe('steamLibraries', () => getSteamLibraries()) || []
+  for (const lib of r.steamLibraries) {
+    safe('steamGames[' + lib + ']', () => {
+      const dir = path.join(lib, 'steamapps')
+      const acf = fs.readdirSync(dir).filter(f => /^appmanifest_\d+\.acf$/.test(f))
+      r.steamGamesPerLib[lib] = acf.length
+      for (const f of acf.slice(0, 40)) {
+        const t = fs.readFileSync(path.join(dir, f), 'utf8')
+        const name = (t.match(/"name"\s+"([^"]+)"/i) || [])[1]
+        if (name && !isNonGame(name) && r.steamSample.length < 30) r.steamSample.push(name)
+      }
+    })
+  }
+  const manDir = path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests')
+  r.epicDir = manDir
+  r.epicCount = safe('epic', () => fs.readdirSync(manDir).filter(f => f.endsWith('.item')).length) ?? 'n/a'
+  for (const root of r.drives) {
+    safe('xbox[' + root + ']', () => { const b = path.join(root, 'XboxGames'); if (fs.existsSync(b)) r.xbox.push(b + ' (' + fs.readdirSync(b).length + ' folders)') })
+  }
+  r.gogKeys = safe('gog', () => regSubkeys('HKLM\\SOFTWARE\\WOW6432Node\\GOG.com\\Games').length) ?? 'n/a'
+  return r
 })
 
 // ── Steam Workshop ────────────────────────────────────────────────────────────
