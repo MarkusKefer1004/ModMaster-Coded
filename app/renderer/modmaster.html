@@ -35,7 +35,12 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
 
 /* ── Background layer sits behind everything ──────────────────────────── */
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--faint,#333845) 1px,transparent 1px),linear-gradient(90deg,var(--faint,#333845) 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0;}
-#mm-main-content{position:relative;z-index:1;}
+/* keep it above the grid background WITHOUT overriding position:fixed (that broke vertical scrolling) */
+#mm-main-content{z-index:1;}
+#mm-main-content::-webkit-scrollbar{width:11px;}
+#mm-main-content::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px;border:2px solid var(--bg);}
+#mm-main-content::-webkit-scrollbar-thumb:hover{background:var(--border-hi);}
+#mm-main-content::-webkit-scrollbar-track{background:transparent;}
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;}
@@ -47,8 +52,15 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
 .scan-btn{background:none;border:0.5px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px;}
 .scan-btn:hover{border-color:var(--border-hi);color:var(--text);}
-.games-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
-.games-scroll::-webkit-scrollbar{display:none;}
+.games-row{display:flex;align-items:stretch;gap:6px;}
+.games-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;flex:1;min-width:0;scroll-behavior:smooth;}
+.games-scroll::-webkit-scrollbar{height:9px;}
+.games-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px;}
+.games-scroll::-webkit-scrollbar-thumb:hover{background:var(--border-hi);}
+.games-scroll::-webkit-scrollbar-track{background:transparent;}
+.scroll-arrow{flex-shrink:0;width:30px;border-radius:10px;background:var(--bg2);border:0.5px solid var(--border);color:var(--muted);font-size:18px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all 0.15s;-webkit-app-region:no-drag;}
+.scroll-arrow:hover{border-color:var(--border-hi);color:var(--text);}
+.scroll-arrow.show{display:flex;}
 .game-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;min-width:140px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;position:relative;flex-shrink:0;}
 .game-card:hover{transform:translateY(-2px);}
 .game-card-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:10px 10px 0 0;}
@@ -150,8 +162,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
     </div>
     <div class="drive-picker" id="drive-picker" style="display:none;"></div>
-    <div class="games-scroll" id="games-scroll">
-      <div class="no-games">Scanning for games...</div>
+    <div class="games-row">
+      <button class="scroll-arrow" id="games-arrow-l" onclick="scrollGames(-1)" title="Scroll left">‹</button>
+      <div class="games-scroll" id="games-scroll">
+        <div class="no-games">Scanning for games...</div>
+      </div>
+      <button class="scroll-arrow" id="games-arrow-r" onclick="scrollGames(1)" title="Scroll right">›</button>
     </div>
   </div>
 
@@ -318,13 +334,29 @@ function renderGames() {
       <div>No games found automatically. Tell ModMaster where your games are:</div>
       <button class="scan-btn" onclick="toggleDrivePicker(true)" style="padding:8px 16px;"><span>📁</span><span>Choose a drive or folder</span></button>
     </div>`
+    updateGamesArrows()
     return
   }
   const favGames   = allGames.filter(g => favourites.includes(g.id))
   const otherGames = allGames.filter(g => !favourites.includes(g.id))
   const sorted = [...sortGames(favGames), ...sortGames(otherGames)]
   scroll.innerHTML = sorted.map(g => gameCardHTML(g)).join('')
+  updateGamesArrows()
 }
+// ── Horizontal scroll for the games row ─────────────────────────────────────
+function scrollGames(dir) {
+  const s = document.getElementById('games-scroll')
+  if (s) s.scrollBy({ left: dir * 320, behavior: 'smooth' })
+}
+function updateGamesArrows() {
+  const s = document.getElementById('games-scroll')
+  const l = document.getElementById('games-arrow-l'), r = document.getElementById('games-arrow-r')
+  if (!s || !l || !r) return
+  const overflow = s.scrollWidth > s.clientWidth + 4
+  l.classList.toggle('show', overflow)
+  r.classList.toggle('show', overflow)
+}
+window.addEventListener('resize', updateGamesArrows)
 const PLATFORM_ORDER = { steam: 0, epic: 1, xbox: 2, gog: 3, other: 4 }
 function sortGames(list) {
   return [...list].sort((a, b) => {
