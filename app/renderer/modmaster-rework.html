@@ -267,6 +267,9 @@ let currentMod = null
 let effects = []
 let detailMode = false
 let codeOpen = false
+let realMod = null        // { format:'lines'|'json', lines?, obj?, ext } when a real file was parsed
+let effCounter = 0
+let savedPath = null
 
 const STEPS = ['game','scanning','list','editor','results']
 function show(s){ STEPS.forEach(id=>{ const el=document.getElementById('step-'+id); if(el) el.classList.toggle('active', id===s) }) }
@@ -354,7 +357,7 @@ async function loadMods(game){
   if(window.MM && game && game.modPath){
     const r = await window.MM.scanFolder(game.modPath).catch(()=>null)
     if(r?.success && r.mods?.length){
-      mods = r.mods.map((m,i)=>({id:'real-'+i, name:m.name, file:m.file}))
+      mods = r.mods.map((m,i)=>({id:'real-'+i, name:m.name, file:m.file, fullPath:m.fullPath}))
     }
   }
   if(!mods.length) mods=[...DEMO_MODS]
@@ -385,19 +388,149 @@ function renderModList(mods){
 }
 
 // ── Editor ─────────────────────────────────────────────────────────────────────
-function openEditor(mod){
+async function openEditor(mod){
   currentMod = mod
-  effects = buildDemoEffects()            // demo values (real parsing wired later)
+  realMod = null; savedPath = null; effCounter = 0
+
+  // Try to read + parse the real mod file (numbers → sliders, true/false → toggles)
+  let parsed = null
+  if(window.MM && mod.fullPath){
+    try{
+      const r = await window.MM.readFile(mod.fullPath)
+      if(r && r.success && typeof r.content === 'string'){
+        parsed = parseModFile(r.content, (mod.file||'').split('.').pop())
+      }
+    }catch{}
+  }
+  if(parsed && parsed.effects.length){
+    effects = parsed.effects
+    realMod = { format: parsed.format, lines: parsed.lines, obj: parsed.obj, ext: (mod.file||'mod.txt').split('.').pop() }
+  } else {
+    effects = buildDemoEffects()          // no readable/parseable file → demo values
+  }
+
   detailMode=false; codeOpen=false
   document.getElementById('btn-detail').classList.remove('on')
   document.getElementById('btn-code').classList.remove('on')
   document.getElementById('ver-panel').classList.remove('open')
   document.getElementById('code-acc').classList.remove('open')
   document.getElementById('ed-modname').value = mod.name
-  document.getElementById('page-sub').textContent='Reworking '+mod.name+' — flip switches, drag sliders.'
+  document.getElementById('page-sub').textContent = realMod
+    ? 'Reworking '+mod.name+' — '+effects.length+' values found in the file.'
+    : 'Reworking '+mod.name+' — flip switches, drag sliders.'
   renderCats()
   show('editor')
   window.scrollTo?.(0,0)
+}
+
+// ── Real mod-file parsing / serialisation ───────────────────────────────────────
+const MAX_EFFECTS = 80
+function parseModFile(content, ext){
+  ext = (ext||'').toLowerCase()
+  if(ext==='json'){ const j = parseJsonMod(content); if(j && j.effects.length) return j }
+  return parseLineMod(content)
+}
+function prettyName(key){
+  return String(key).replace(/[_.\-]+/g,' ').replace(/([a-z0-9])([A-Z])/g,'$1 $2')
+    .replace(/\s+/g,' ').trim().replace(/\b\w/g,c=>c.toUpperCase()) || 'Value'
+}
+function categorizeKey(key){
+  const k = String(key).toLowerCase()
+  if(/health|armor|armour|stamina|speed|jump|carry|player|move|run|sprint|\bhp\b/.test(k)) return 'player'
+  if(/damage|ammo|fire|recoil|reload|weapon|gun|bullet|range/.test(k)) return 'weapons'
+  if(/money|cash|price|cost|drop|reward|econom|gold|coin|sell|buy/.test(k)) return 'economy'
+  if(/weather|time|spawn|world|\bday\b|night|climate|npc/.test(k)) return 'world'
+  if(/fov|draw|distance|render|effect|visual|camera|graphic|light|shadow/.test(k)) return 'visual'
+  return 'other'
+}
+function inferSlider(key, v){
+  const k = String(key).toLowerCase()
+  if(/fov/.test(k)) return {min:60, max:120, step:1, unit:'°'}
+  if(/percent|pct|chance|prob|opacity|alpha/.test(k) && v<=100) return {min:0, max:100, step:1, unit:'%'}
+  if(/mult|multiplier|scale|factor|ratio/.test(k)) return {min:0.1, max:10, step:0.1, unit:'x', mult:true}
+  if(Number.isInteger(v)){
+    const step = Math.abs(v)>1000 ? 100 : Math.abs(v)>100 ? 10 : 1
+    return {min:0, max:Math.max(v*4, v+step*10, step*10), step, unit:''}
+  }
+  return {min:0, max:Math.max(1, Math.round(v*4*100)/100), step:0.1, unit:''}
+}
+function makeEffect(key, rawVal, loc){
+  let value, isBool
+  if(rawVal===true||rawVal===false){ isBool=true; value=rawVal }
+  else if(rawVal==='true'||rawVal==='false'){ isBool=true; value=(rawVal==='true') }
+  else { isBool=false; value=Number(rawVal) }
+  const cat=categorizeKey(key), name=prettyName(key)
+  if(isBool){
+    return { id:'e'+(effCounter++), cat, name, key, kind:'toggle', value, enabled:value, orig:{enabled:value, value}, _loc:loc }
+  }
+  if(!isFinite(value)) return null
+  const s=inferSlider(key, value)
+  // clamp range so the current value always sits inside it
+  if(value < s.min) s.min = Math.min(0, value)
+  if(value > s.max) s.max = value*2 || value+s.step
+  return { id:'e'+(effCounter++), cat, name, key, kind:'slider', value, min:s.min, max:s.max, step:s.step, unit:s.unit, mult:!!s.mult, enabled:true, orig:{enabled:true, value}, _loc:loc }
+}
+function parseLineMod(content){
+  const lines = content.split(/\r?\n/)
+  const effects = []
+  const re = /^(\s*[^=:#;\n]*?[=:]\s*)(-?\d+(?:\.\d+)?|true|false)\b(.*)$/
+  lines.forEach((ln, i) => {
+    if(effects.length >= MAX_EFFECTS) return
+    const m = ln.match(re)
+    if(!m) return
+    const km = m[1].match(/([A-Za-z_][\w.\[\]"'\- ]*?)\s*[=:]\s*$/)
+    const key = km ? km[1].trim() : null
+    if(!key) return
+    const e = makeEffect(key, m[2], { type:'line', line:i, prefix:m[1], suffix:m[3]||'' })
+    if(e) effects.push(e)
+  })
+  return { effects, format:'lines', lines }
+}
+function parseJsonMod(content){
+  let obj; try{ obj = JSON.parse(content) }catch{ return null }
+  const effects = []
+  ;(function walk(o, pathArr){
+    if(!o || typeof o!=='object') return
+    for(const k of Object.keys(o)){
+      if(effects.length >= MAX_EFFECTS) return
+      const v = o[k], p = pathArr.concat(k)
+      if(typeof v==='number' || typeof v==='boolean'){ const e=makeEffect(k, v, {type:'json', path:p}); if(e) effects.push(e) }
+      else if(v && typeof v==='object') walk(v, p)
+    }
+  })(obj, [])
+  return { effects, format:'json', obj }
+}
+function setByPath(obj, pathArr, val){
+  let o = obj
+  for(let i=0;i<pathArr.length-1;i++) o = o[pathArr[i]]
+  o[pathArr[pathArr.length-1]] = val
+}
+function serializeReal(){
+  if(!realMod) return null
+  if(realMod.format==='json'){
+    const obj = JSON.parse(JSON.stringify(realMod.obj))
+    for(const e of effects){
+      if(!e._loc || e._loc.type!=='json') continue
+      const outVal = e.kind==='toggle' ? e.enabled : (e.enabled ? e.value : e.orig.value)
+      setByPath(obj, e._loc.path, outVal)
+    }
+    return JSON.stringify(obj, null, 2) + '\n'
+  }
+  const lines = realMod.lines.slice()
+  for(const e of effects){
+    if(!e._loc || e._loc.type!=='line') continue
+    let outVal
+    if(e.kind==='toggle'){
+      if(e.enabled === e.orig.enabled) continue          // unchanged → leave the line exactly as it was
+      outVal = e.enabled ? 'true' : 'false'
+    } else {
+      const eff = e.enabled ? e.value : e.orig.value
+      if(eff === e.orig.value) continue                  // unchanged → preserve original formatting
+      outVal = String(eff)
+    }
+    lines[e._loc.line] = e._loc.prefix + outVal + e._loc.suffix
+  }
+  return lines.join('\n')
 }
 
 function renderCats(){
@@ -537,7 +670,9 @@ function toggleHistory(){
 }
 function toggleCat(id){ collapsed.has(id)?collapsed.delete(id):collapsed.add(id); document.getElementById('cat-'+id).classList.toggle('collapsed') }
 
-function genCode(){
+// Real file → write actual values back; demo mod → synthesise readable pseudo-code
+function genCode(){ return realMod ? serializeReal() : genCodeSynthetic() }
+function genCodeSynthetic(){
   const name=document.getElementById('ed-modname').value||currentMod?.name||'mod'
   const lines = effects.filter(e=>e.enabled).map(e=>{
     if(e.kind==='toggle') return e.codeKey+' = true'
@@ -584,7 +719,7 @@ function openSave(){
   document.getElementById('save-label').focus()
 }
 function closeSave(){ document.getElementById('save-overlay').classList.remove('open') }
-function confirmSave(){
+async function confirmSave(){
   const label=document.getElementById('save-label').value.trim()||nowLabel()
   const note=document.getElementById('save-note').value.trim()
   const vs=getVersions()
@@ -592,6 +727,14 @@ function confirmSave(){
     effects: effects.map(e=>Object.assign({},e)) })
   while(vs.length>10) vs.pop()               // keep max 10, drop oldest
   try{ localStorage.setItem(verKey(), JSON.stringify(vs)) }catch{}
+
+  // Real mod → write the changes to a NEW file next to the original (never overwrite it)
+  savedPath = null
+  if(realMod && window.MM && currentMod && currentMod.fullPath){
+    const fp = currentMod.fullPath
+    const newPath = /\.[^.\\/]+$/.test(fp) ? fp.replace(/(\.[^.\\/]+)$/, '.reworked$1') : fp + '.reworked'
+    try{ const r = await window.MM.saveFile({ filePath:newPath, content: serializeReal() }); if(r && r.success) savedPath = newPath }catch{}
+  }
   closeSave()
   showResults()
 }
@@ -616,7 +759,9 @@ function changeList(){
 function showResults(){
   const name=document.getElementById('ed-modname').value
   document.getElementById('result-name').value=name
-  document.getElementById('result-file').textContent='Saved '+nowLabel()+' · original untouched'
+  document.getElementById('result-file').textContent = savedPath
+    ? 'Saved as ' + savedPath.split(/[\\/]/).pop() + ' in your mods folder · original untouched'
+    : 'Saved ' + nowLabel() + ' · original untouched'
   const changes=changeList()
   document.getElementById('changes').innerHTML = changes.length
     ? changes.map(c=>`<li class="change"><span class="change-ico">◆</span><span>${c}</span></li>`).join('')
