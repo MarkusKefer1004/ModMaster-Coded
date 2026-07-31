@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld('MM', {
   installMod: (opts)  => ipcRenderer.invoke('install-mod', opts),
   uninstallMod:(opts) => ipcRenderer.invoke('uninstall-mod', opts),
   listInstalls:   ()  => ipcRenderer.invoke('list-installs'),
+  installTool:(opts)  => ipcRenderer.invoke('install-tool', opts),
+  openPath:   (p)     => ipcRenderer.invoke('open-path', p),
+  grantGameAccess:(p) => ipcRenderer.invoke('grant-game-access', p),
 
   // Steam Workshop
   scanWorkshop:  (appId) => ipcRenderer.invoke('scan-workshop', appId),

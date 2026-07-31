@@ -697,6 +697,96 @@ ipcMain.handle('uninstall-mod', async (e, { id, dest }) => {
 // ── List installed mods (from the install registry in config) ─────────────────
 ipcMain.handle('list-installs', async () => loadConfig().installs || [])
 
+// ── Tool installer (download modding tools into the game folder) ──────────────
+// Download a URL to a file, following redirects (GitHub release assets redirect).
+function downloadFile(url, dest, redirects = 0) {
+  return new Promise((resolve) => {
+    if (redirects > 6) return resolve({ success: false, error: 'too_many_redirects' })
+    let u; try { u = new URL(url) } catch { return resolve({ success: false, error: 'bad_url' }) }
+    const mod = u.protocol === 'http:' ? http : https
+    const req = mod.get({
+      hostname: u.hostname, path: u.pathname + u.search, port: u.port || (u.protocol === 'http:' ? 80 : 443),
+      headers: { 'User-Agent': 'ModMaster', 'Accept': 'application/octet-stream' },
+    }, (res) => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        res.resume()
+        return resolve(downloadFile(new URL(res.headers.location, u).toString(), dest, redirects + 1))
+      }
+      if (res.statusCode !== 200) { res.resume(); return resolve({ success: false, error: 'http_' + res.statusCode }) }
+      const out = fs.createWriteStream(dest)
+      res.pipe(out)
+      out.on('finish', () => out.close(() => resolve({ success: true })))
+      out.on('error', (er) => resolve({ success: false, error: er.message }))
+    })
+    req.on('error', (er) => resolve({ success: false, error: er.message }))
+  })
+}
+// Resolve a GitHub latest-release asset download URL by filename pattern
+function ghLatestAsset(repo, patternSource) {
+  return new Promise((resolve) => {
+    const req = https.get({
+      hostname: 'api.github.com', path: `/repos/${repo}/releases/latest`,
+      headers: { 'User-Agent': 'ModMaster', 'Accept': 'application/vnd.github+json' },
+    }, (res) => {
+      let d = ''; res.on('data', c => d += c)
+      res.on('end', () => {
+        try {
+          const j = JSON.parse(d); const re = new RegExp(patternSource, 'i')
+          const asset = (j.assets || []).find(a => re.test(a.name))
+          resolve(asset ? { success: true, url: asset.browser_download_url, name: asset.name, tag: j.tag_name }
+                        : { success: false, error: 'asset_not_found' })
+        } catch (er) { resolve({ success: false, error: 'parse_' + er.message }) }
+      })
+    })
+    req.on('error', (er) => resolve({ success: false, error: er.message }))
+  })
+}
+// One-click install of a tool: download (direct URL or resolved GitHub asset) then unzip/copy into the game
+ipcMain.handle('install-tool', async (e, opts) => {
+  try {
+    const gamePath = opts && opts.gamePath
+    if (!gamePath || !fs.existsSync(gamePath)) return { success: false, error: 'game_folder_missing' }
+    let url = opts.url
+    if (!url && opts.repo) {
+      const r = await ghLatestAsset(opts.repo, opts.assetPattern || '\\.zip$')
+      if (!r.success) return { success: false, error: 'resolve_' + r.error }
+      url = r.url
+    }
+    if (!url) return { success: false, error: 'no_url' }
+    const tmp = path.join(os.tmpdir(), 'mm-tool-' + Date.now() + (opts.unzip ? '.zip' : (path.extname(url.split('?')[0]) || '.bin')))
+    const dl = await downloadFile(url, tmp)
+    if (!dl.success) return { success: false, error: 'download_' + dl.error }
+    if (opts.unzip) {
+      const target = opts.subdir ? path.join(gamePath, opts.subdir) : gamePath
+      try { fs.mkdirSync(target, { recursive: true }) } catch {}
+      try {
+        const q = s => "'" + String(s).replace(/'/g, "''") + "'"
+        execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath ${q(tmp)} -DestinationPath ${q(target)} -Force"`, { stdio: ['ignore', 'ignore', 'pipe'] })
+      } catch (err) { try { fs.unlinkSync(tmp) } catch {}; return { success: false, error: 'extract_failed' } }
+      try { fs.unlinkSync(tmp) } catch {}
+      return { success: true, installedTo: target }
+    }
+    const target = path.join(gamePath, path.basename(url.split('?')[0]))
+    try { fs.copyFileSync(tmp, target); fs.unlinkSync(tmp) } catch (err) { return { success: false, error: err.message } }
+    return { success: true, installedTo: target }
+  } catch (err) { return { success: false, error: err.message } }
+})
+// Open a folder in Explorer (for guided installs)
+ipcMain.handle('open-path', async (e, p) => {
+  try { const r = await shell.openPath(String(p || '')); return { success: !r, error: r || null } }
+  catch (err) { return { success: false, error: err.message } }
+})
+// Grant this user full control of a protected (Xbox/WindowsApps) game folder — needs admin (UAC)
+ipcMain.handle('grant-game-access', async (e, gamePath) => {
+  try {
+    if (!gamePath) return { success: false, error: 'no_path' }
+    const bat = path.join(os.tmpdir(), 'mm-grant-' + Date.now() + '.bat')
+    fs.writeFileSync(bat, '@echo off\r\ntakeown /f "' + gamePath + '" /r /d y\r\nicacls "' + gamePath + '" /grant "%USERNAME%":(F) /t\r\n')
+    execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '${bat.replace(/'/g, "''")}' -Verb RunAs"`, { stdio: 'ignore' })
+    return { success: true, elevated: true }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
 // ── Self-updater ─────────────────────────────────────────────────────────────
 ipcMain.handle('update-and-restart', async (e, {repoUrl}) => {
   try {

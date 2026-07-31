@@ -177,15 +177,18 @@ function goBack(){
 }
 
 // ── Tool catalogue ─────────────────────────────────────────────────────────────
+// mode:'auto'   → ModMaster downloads + drops it into the game folder (true one-click)
+// mode:'guided' → can't be auto-downloaded (installer/licensing), so we open the
+//                 official page + the game folder in one click
 const TOOLS = {
-  ue4ss:          {name:'UE4SS',          ico:'🧩', engine:'Unreal Engine', blurb:'Unreal Engine scripting system — enables Lua mods and a live mod GUI for UE4/UE5 games.'},
-  scripthookv:    {name:'ScriptHookV',    ico:'🎯', engine:'RAGE',          blurb:'Runs .asi script mods and native trainers in GTA V.'},
-  scripthookrdr2: {name:'ScriptHookRDR2', ico:'🎯', engine:'RAGE',          blurb:'Script-mod loader for Red Dead Redemption 2.'},
-  openiv:         {name:'OpenIV',         ico:'📦', engine:'RAGE',          blurb:'Archive editor for GTA V / GTA IV — edit game files and install texture & model mods.'},
-  smapi:          {name:'SMAPI',          ico:'🌱', engine:'MonoGame',      blurb:'The Stardew Valley modding API and mod loader.'},
-  bepinex:        {name:'BepInEx',        ico:'⚙️', engine:'Unity',         blurb:'Plugin framework and patcher for Unity games.'},
-  f4se:           {name:'F4SE',           ico:'☢️', engine:'Creation Engine',blurb:'Fallout 4 Script Extender — required by most advanced Fallout 4 mods.'},
-  skse64:         {name:'SKSE64',         ico:'📜', engine:'Creation Engine',blurb:'Skyrim Script Extender — required by most advanced Skyrim SE mods.'},
+  ue4ss:          {name:'UE4SS',          ico:'🧩', engine:'Unreal Engine', blurb:'Unreal Engine scripting system — enables Lua mods and a live mod GUI for UE4/UE5 games.', mode:'auto', repo:'UE4SS-RE/RE-UE4SS', assetPattern:'^UE4SS_v.*\\.zip$', unzip:true, page:'https://github.com/UE4SS-RE/RE-UE4SS/releases'},
+  bepinex:        {name:'BepInEx',        ico:'⚙️', engine:'Unity',         blurb:'Plugin framework and patcher for Unity games.', mode:'auto', repo:'BepInEx/BepInEx', assetPattern:'BepInEx_win_x64.*\\.zip$', unzip:true, page:'https://github.com/BepInEx/BepInEx/releases'},
+  scripthookv:    {name:'ScriptHookV',    ico:'🎯', engine:'RAGE',          blurb:'Runs .asi script mods and native trainers in GTA V.', mode:'guided', page:'http://www.dev-c.com/gtav/scripthookv/'},
+  scripthookrdr2: {name:'ScriptHookRDR2', ico:'🎯', engine:'RAGE',          blurb:'Script-mod loader for Red Dead Redemption 2.', mode:'guided', page:'http://www.dev-c.com/rdr2/scripthookrdr2/'},
+  openiv:         {name:'OpenIV',         ico:'📦', engine:'RAGE',          blurb:'Archive editor for GTA V / GTA IV — edit game files and install texture & model mods.', mode:'guided', page:'https://openiv.com/'},
+  smapi:          {name:'SMAPI',          ico:'🌱', engine:'MonoGame',      blurb:'The Stardew Valley modding API and mod loader.', mode:'guided', page:'https://smapi.io/'},
+  f4se:           {name:'F4SE',           ico:'☢️', engine:'Creation Engine',blurb:'Fallout 4 Script Extender — required by most advanced Fallout 4 mods.', mode:'guided', page:'https://f4se.silverlock.org/'},
+  skse64:         {name:'SKSE64',         ico:'📜', engine:'Creation Engine',blurb:'Skyrim Script Extender — required by most advanced Skyrim SE mods.', mode:'guided', page:'https://skse.silverlock.org/'},
 }
 // Which tool(s) each known game needs
 const GAME_TOOLS = {
@@ -258,10 +261,13 @@ function detectTools(game){
 
   list.innerHTML=recommended.map(id=>{
     const t=TOOLS[id]; if(!t) return ''
+    const modeTag = t.mode==='auto'
+      ? `<span class="tool-tag" style="background:rgba(74,222,128,0.12);color:var(--green,#4ade80);">1-click</span>`
+      : `<span class="tool-tag" style="background:rgba(245,166,35,0.12);color:var(--amber,#f5a623);">guided</span>`
     return `<div class="tool-card">
       <div class="tool-ico">${t.ico}</div>
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;"><span class="tool-name">${t.name}</span></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span class="tool-name">${t.name}</span>${modeTag}</div>
         <div class="tool-blurb">${t.blurb}</div>
       </div>
       <div class="tool-tag">${t.engine}</div>
@@ -281,58 +287,83 @@ function startInstallFlow(){
 function toggleManual(){ document.getElementById('manual-box').classList.toggle('open') }
 async function grantXbox(){
   const btn=document.getElementById('xbox-grant-btn')
-  btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div> Granting access…'
-  // TODO(real): call an MM handler that runs takeown/icacls via elevated PowerShell on activeGame.gamePath
-  await sleep(1600)
+  btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:12px;height:12px;"></div> Requesting access…'
+  // Runs takeown + icacls via an elevated PowerShell (Windows will show a UAC prompt)
+  if(window.MM && window.MM.grantGameAccess){
+    try{ await window.MM.grantGameAccess(activeGame && activeGame.gamePath) }catch{}
+  } else { await sleep(1200) }
   xboxGranted=true
-  btn.innerHTML='✓ Access granted'
-  await sleep(500)
+  btn.innerHTML='✓ Access requested — approve the Windows prompt'
+  await sleep(600)
   runInstall()
 }
 function skipXbox(){ xboxGranted=true; runInstall() }
 
+function setProg(id, state, error){
+  const ico=document.getElementById('ip-ico-'+id), b=document.getElementById('ip-badge-'+id)
+  if(!ico||!b) return
+  if(state==='spin'){ ico.innerHTML='<div class="spinner" style="width:14px;height:14px;color:var(--amber,#f5a623);"></div>'; b.textContent='Working'; b.style.background='rgba(245,166,35,0.12)'; b.style.color='var(--amber,#f5a623)'; return }
+  if(state==='installed'){ ico.textContent='✓'; ico.style.color='var(--green,#4ade80)'; b.textContent='Installed'; b.style.background='rgba(74,222,128,0.12)'; b.style.color='var(--green,#4ade80)'; return }
+  if(state==='opened'){ ico.textContent='↗'; ico.style.color='var(--amber,#f5a623)'; b.textContent='Page opened'; b.style.background='rgba(245,166,35,0.12)'; b.style.color='var(--amber,#f5a623)'; return }
+  ico.textContent='✗'; ico.style.color='var(--coral,#f07050)'; b.textContent='Failed'; b.style.background='rgba(240,112,80,0.12)'; b.style.color='var(--coral,#f07050)'; if(error) b.title=error
+}
 async function runInstall(){
   show('installing')
-  document.getElementById('page-sub').textContent='Installing tools for '+(activeGame?activeGame.name:'your game')+'…'
-  const list=document.getElementById('inst-list')
-  list.innerHTML=recommended.map(id=>`<div class="tool-prog" id="ip-${id}">
+  document.getElementById('page-sub').textContent='Setting up tools for '+(activeGame?activeGame.name:'your game')+'…'
+  document.getElementById('inst-list').innerHTML=recommended.map(id=>`<div class="tool-prog" id="ip-${id}">
     <div id="ip-ico-${id}" style="font-size:15px;">⏳</div>
     <div style="flex:1;">${TOOLS[id].name}</div>
     <div id="ip-badge-${id}" class="tool-tag" style="background:rgba(107,112,128,0.12);color:var(--muted);">Queued</div>
   </div>`).join('')
 
   const results=[]
+  const gamePath = activeGame && activeGame.gamePath
   for(let i=0;i<recommended.length;i++){
-    const id=recommended[i]
-    const stages=['Downloading…','Verifying…','Copying to game folder…','Done']
-    document.getElementById('ip-ico-'+id).innerHTML='<div class="spinner" style="width:14px;height:14px;color:var(--amber,#f5a623);"></div>'
-    document.getElementById('ip-badge-'+id).textContent='Installing'
-    for(let s=0;s<stages.length;s++){
-      const overall=Math.round(((i+ s/stages.length)/recommended.length)*100)
-      document.getElementById('inst-bar').style.width=overall+'%'
-      document.getElementById('inst-pct').textContent=overall+'%'
-      document.getElementById('inst-action').textContent=TOOLS[id].name+' — '+stages[s]
-      await sleep(430)
+    const id=recommended[i], t=TOOLS[id]
+    document.getElementById('inst-bar').style.width=Math.round((i/recommended.length)*100)+'%'
+    document.getElementById('inst-pct').textContent=Math.round((i/recommended.length)*100)+'%'
+    setProg(id,'spin')
+    let status='failed', error=null
+    if(t.mode==='auto'){
+      document.getElementById('inst-action').textContent=t.name+' — downloading & installing…'
+      if(window.MM && window.MM.installTool){
+        const r = await window.MM.installTool({ repo:t.repo, assetPattern:t.assetPattern, url:t.url, unzip:t.unzip, subdir:t.subdir, gamePath }).catch(e=>({success:false,error:String(e&&e.message||e)}))
+        if(r && r.success){ status='installed' } else { status='failed'; error=(r&&r.error)||'unknown' }
+      } else { await sleep(700); status='installed' }        // demo/browser
+    } else {
+      document.getElementById('inst-action').textContent=t.name+' — opening download page & game folder…'
+      if(window.MM){ try{ await window.MM.openExternal(t.page) }catch{}; try{ if(gamePath) await window.MM.openPath(gamePath) }catch{} }
+      else { await sleep(500) }
+      status='opened'
     }
-    // TODO(real): download the tool archive and extract into activeGame.gamePath via an MM handler
-    document.getElementById('ip-ico-'+id).textContent='✓'
-    document.getElementById('ip-ico-'+id).style.color='var(--green,#4ade80)'
-    const b=document.getElementById('ip-badge-'+id)
-    b.textContent='Installed'; b.style.background='rgba(74,222,128,0.12)'; b.style.color='var(--green,#4ade80)'
-    results.push(id)
+    setProg(id, status, error)
+    results.push({ id, status, error })
   }
   document.getElementById('inst-bar').style.width='100%'
   document.getElementById('inst-pct').textContent='100%'
   document.getElementById('inst-action').textContent='Done!'
-  await sleep(500)
+  await sleep(400)
   showResults(results)
 }
+function openToolPage(id){ const t=TOOLS[id]; if(t && t.page){ if(window.MM) window.MM.openExternal(t.page); else window.open(t.page,'_blank') } }
 
-function showResults(ids){
-  document.getElementById('res-title').textContent='✓ '+ids.length+' tool'+(ids.length!==1?'s':'')+' installed'
-  document.getElementById('res-lines').innerHTML=ids.map(id=>`<div class="res-line"><span style="color:var(--green,#4ade80);">✓</span> <b style="font-weight:600;">${TOOLS[id].name}</b> <span style="color:var(--muted);font-size:12px;">installed to ${activeGame?activeGame.name:'game'}</span></div>`).join('')
-  const hint = (activeGame?.isXbox)
-    ? 'Xbox Game Pass note: if the game updates, you may need to re-grant permission. Launch the game once to let the tools initialise.'
+function showResults(results){
+  const installed=results.filter(r=>r.status==='installed')
+  const opened=results.filter(r=>r.status==='opened')
+  const failed=results.filter(r=>r.status==='failed')
+  document.getElementById('res-title').textContent =
+    failed.length ? '⚠ Finished with issues'
+    : (opened.length && !installed.length) ? '↗ Download page(s) opened'
+    : '✓ '+installed.length+' tool'+(installed.length!==1?'s':'')+' installed'
+  document.getElementById('res-lines').innerHTML=results.map(r=>{
+    const t=TOOLS[r.id]
+    if(r.status==='installed') return `<div class="res-line"><span style="color:var(--green,#4ade80);">✓</span> <b>${t.name}</b> <span style="color:var(--muted);font-size:12px;">installed to ${activeGame?activeGame.name:'game'}</span></div>`
+    if(r.status==='opened')    return `<div class="res-line"><span style="color:var(--amber,#f5a623);">↗</span> <b>${t.name}</b> <span style="color:var(--muted);font-size:12px;">page + game folder opened — drop the download into that folder</span></div>`
+    return `<div class="res-line"><span style="color:var(--coral,#f07050);">✗</span> <b>${t.name}</b> <span style="color:var(--muted);font-size:12px;">couldn't auto-install — <span class="link-btn" style="cursor:pointer;" onclick="openToolPage('${r.id}')">open its page</span></span></div>`
+  }).join('')
+  const hint = failed.length ? 'Some tools need a manual grab — click “open its page”, download, and drop the file into the game folder.'
+    : opened.length ? 'For opened tools: download the file from the page and drop it into the game folder that just opened. Then launch the game once.'
+    : (activeGame && activeGame.isXbox) ? 'Xbox note: if the game updates you may need to re-grant access. Launch the game once so the tools initialise.'
     : 'Launch the game once to let the tools initialise, then add your mods.'
   document.getElementById('res-hint').textContent=hint
   document.getElementById('page-sub').textContent='All set!'
