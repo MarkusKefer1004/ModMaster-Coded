@@ -69,6 +69,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .game-card-star{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:14px;padding:0;line-height:1;transition:transform 0.15s;}
 .game-card-star:hover{transform:scale(1.2);}
 .no-games{background:var(--bg2);border:0.5px dashed var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:13px;color:var(--muted);text-align:center;line-height:1.6;}
+/* non-moddable games: greyed, struck through, disabled */
+.game-card.not-moddable{opacity:0.45;cursor:not-allowed;}
+.game-card.not-moddable:hover{transform:none;border-color:var(--border);}
+.game-card.not-moddable .game-card-name{text-decoration:line-through;color:var(--muted);}
+.not-moddable-tag{position:absolute;bottom:8px;right:10px;font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--coral,#f07050);background:rgba(240,112,80,0.12);padding:1px 7px;border-radius:99px;}
+/* moddability verdict panel (shown when a game is selected) */
+.modcheck{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:12px;max-width:640px;display:none;}
+.modcheck.show{display:block;}
+.modcheck-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.modcheck-label{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+.modcheck-eng{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--muted);}
+.modcheck-sum{font-size:12.5px;color:var(--text);margin-top:6px;line-height:1.5;}
+.modcheck-warn{font-size:11.5px;color:var(--muted);margin-top:4px;}
 
 /* ── Feature cards ────────────────────────────────────────────────────────── */
 .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
@@ -109,7 +122,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div id="titlebar">
   <div id="titlebar-left">
     <span id="titlebar-logo">ModMaster</span>
-    <span id="titlebar-version">v2.4</span>
+    <span id="titlebar-version">v2.5</span>
   </div>
   <div style="display:flex;align-items:center;">
     <div id="titlebar-update">
@@ -169,6 +182,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
       <button class="scroll-arrow" id="games-arrow-r" onclick="scrollGames(1)" title="Scroll right">›</button>
     </div>
+    <div class="modcheck" id="modcheck"></div>
   </div>
 
   <!-- Feature cards -->
@@ -300,6 +314,8 @@ async function toggleMax() {
 // ── Game detection ────────────────────────────────────────────────────────
 let allGames = []
 let favourites = []
+let modCache = {}
+let modChecking = false
 
 async function loadFavourites() {
   try { favourites = window.MM ? await window.MM.getFavourites() : JSON.parse(localStorage.getItem('mm-favs')||'[]') } catch { favourites=[] }
@@ -309,6 +325,7 @@ async function scanGames(showLoading = true) {
   const btn = document.getElementById('scan-btn')
   const icon = document.getElementById('scan-icon')
   const txt  = document.getElementById('scan-txt')
+  modCache = {}   // re-check moddability on a fresh scan
   if (showLoading) { icon.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-top-color:var(--teal,#2dd4a0);"></div>'; txt.textContent = 'Scanning...' }
 
   let games = []
@@ -342,6 +359,7 @@ function renderGames() {
   const sorted = [...sortGames(favGames), ...sortGames(otherGames)]
   scroll.innerHTML = sorted.map(g => gameCardHTML(g)).join('')
   updateGamesArrows()
+  refreshModdability()   // async: greys out games that can't be modded
 }
 // ── Horizontal scroll for the games row ─────────────────────────────────────
 function scrollGames(dir) {
@@ -388,12 +406,57 @@ async function toggleFav(id, e) {
   renderGames()
 }
 
-function selectGame(id) {
+async function selectGame(id) {
   const game = allGames.find(g=>g.id===id)
-  if (game) {
-    localStorage.setItem('mm-active-game', JSON.stringify(game))
-    if (window.MMTheme) window.MMTheme.applyGameTheme(game.name)
-  }
+  if (!game) return
+  const v = await getModdability(game)
+  showModPanel(game)
+  if (v.status === 'unknown') return          // not moddable → don't pick it for modding
+  localStorage.setItem('mm-active-game', JSON.stringify(game))
+  if (window.MMTheme) window.MMTheme.applyGameTheme(game.name)
+}
+
+// ── Moddability (check the game folder; grey out games that can't be modded) ──
+function demoModdability(g){
+  if (g.isXbox || g.platform==='xbox') return {status:'permission', icon:'🔒', label:'Needs permission', engine:null, warnings:[], summary:'Xbox Game Pass folder — grant access first, then it’s moddable.'}
+  return {status:'moddable', icon:'✅', label:'Moddable', engine:null, warnings:[], summary:'Looks moddable — open the Tool Installer to set it up.'}
+}
+async function getModdability(game){
+  if (modCache[game.id]) return modCache[game.id]
+  let v = null
+  if (window.MM && window.MM.checkModdability) { try { v = await window.MM.checkModdability(game) } catch {} }
+  if (!v) v = demoModdability(game)
+  modCache[game.id] = v
+  return v
+}
+async function showModPanel(game){
+  const el = document.getElementById('modcheck'); if (!el) return
+  el.classList.add('show')
+  el.innerHTML = `<div class="modcheck-head"><div class="spinner" style="width:13px;height:13px;"></div><span class="modcheck-sum">Checking ${game.name}…</span></div>`
+  const v = await getModdability(game)
+  const c = {moddable:'var(--green,#4ade80)',caution:'var(--coral,#f07050)',permission:'var(--amber,#f5a623)',unknown:'var(--muted)'}[v.status] || 'var(--muted)'
+  const warn = (v.warnings||[]).map(w=>`<div class="modcheck-warn">• ${w}</div>`).join('')
+  el.innerHTML = `<div class="modcheck-head"><span style="font-size:18px;">${v.icon}</span>
+      <span class="modcheck-label" style="color:${c};">${game.name}: ${v.label}</span>
+      ${v.engine?`<span class="modcheck-eng">${v.engine}</span>`:''}</div>
+    <div class="modcheck-sum">${v.summary||''}</div>${warn}
+    ${v.status!=='unknown' ? `<button class="scan-btn" style="margin-top:10px;" onclick="window.location.href='modmaster-tools.html'">🔧 Set up tools</button>` : ''}`
+}
+async function refreshModdability(){
+  if (modChecking) return
+  modChecking = true
+  try {
+    for (const g of allGames){
+      const v = await getModdability(g)
+      if (v.status === 'unknown'){
+        const card = document.querySelector(`.game-card[data-id="${g.id}"]`)
+        if (card && !card.classList.contains('not-moddable')){
+          card.classList.add('not-moddable')
+          const tag = document.createElement('div'); tag.className='not-moddable-tag'; tag.textContent='✕ Not moddable'; card.appendChild(tag)
+        }
+      }
+    }
+  } finally { modChecking = false }
 }
 
 // ── Drive / folder picker (manual "where are my games?") ────────────────────

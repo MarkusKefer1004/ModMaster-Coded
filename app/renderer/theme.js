@@ -85,6 +85,7 @@
 
   // ── Background layer ───────────────────────────────────────────────────────
   function applyBackground(src, opacity, blur) {
+    if (!document.body) return   // theme.js runs in <head>; the layer is added once the DOM is ready
     let layer = document.getElementById('mm-bg-layer')
     if (!layer) {
       layer = document.createElement('div')
@@ -116,11 +117,12 @@
     applyVars(a)
     applyAccentDims(accent || 'default')
 
-    // Apply publisher overrides
+    // Apply publisher overrides (theme.js loads in <head>, so document.body may
+    // not exist yet on first run — guard it)
     if (p && p.bg) {
       document.documentElement.style.setProperty('--bg', p.bg)
-      document.body.style.background = p.bg
-    } else {
+      if (document.body) document.body.style.background = p.bg
+    } else if (document.body) {
       document.body.style.background = 'var(--bg)'
     }
     if (p && p.accent && p.accent !== (accent || 'default')) {
@@ -154,5 +156,9 @@
 
   window.MMTheme = { ...initial, apply: applyTheme, applyGameTheme, MODES, ACCENTS, PUBLISHERS, GAME_PUBLISHER }
   applyTheme(initial)
+  // theme.js loads in <head>; re-apply once <body> exists so body bg + background layer land
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { try { applyTheme(window.MMTheme || initial) } catch {} })
+  }
 
 })()

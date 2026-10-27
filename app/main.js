@@ -787,6 +787,77 @@ ipcMain.handle('grant-game-access', async (e, gamePath) => {
   } catch (err) { return { success: false, error: err.message } }
 })
 
+// ── Moddability check (scan the game folder, decide if & how it can be modded) ─
+const TOOL_NAMES = { ue4ss:'UE4SS', bepinex:'BepInEx', scripthookv:'ScriptHookV', scripthookrdr2:'ScriptHookRDR2', openiv:'OpenIV', smapi:'SMAPI', f4se:'F4SE', skse64:'SKSE64' }
+const toolName = id => TOOL_NAMES[id] || id
+// Collect dir/file/extension signals from the top 2 levels of a game folder (capped)
+function collectSignals(root) {
+  const dirs = new Set(), files = new Set(), exts = new Set(), exes = []
+  let count = 0
+  function walk(dir, depth) {
+    if (depth > 2 || count > 5000) return
+    let ents; try { ents = fs.readdirSync(dir, { withFileTypes: true }) } catch { return }
+    for (const e of ents) {
+      if (count++ > 5000) return
+      const lower = e.name.toLowerCase()
+      if (e.isDirectory()) { dirs.add(lower); walk(path.join(dir, e.name), depth + 1) }
+      else { files.add(lower); const ext = path.extname(lower); if (ext) exts.add(ext); if (ext === '.exe') exes.push(lower) }
+    }
+  }
+  walk(root, 0)
+  return { dirs, files, exts, exes }
+}
+function classifyEngine(s) {
+  if (s.files.has('unityplayer.dll') || [...s.dirs].some(d => d.endsWith('_data'))) return { engine: 'Unity', tools: ['bepinex'] }
+  if (s.dirs.has('engine') || s.dirs.has('paks') || s.exts.has('.pak') || s.exes.some(e => /-win64-shipping\.exe$/.test(e))) return { engine: 'Unreal Engine', tools: ['ue4ss'] }
+  if (s.exts.has('.esm') || s.exts.has('.esp') || s.exes.some(e => /^(skyrimse|fallout4)\.exe$/.test(e))) {
+    return { engine: 'Creation Engine', tools: s.exes.some(e => /fallout4/.test(e)) ? ['f4se'] : ['skse64'] }
+  }
+  if (s.exts.has('.rpf') || s.exes.some(e => /^(gta5|gtav|rdr2)\.exe$/.test(e))) {
+    return { engine: 'RAGE', tools: s.exes.some(e => /rdr2/.test(e)) ? ['scripthookrdr2'] : ['scripthookv', 'openiv'] }
+  }
+  if (s.exts.has('.vpk') || s.files.has('hl2.exe')) return { engine: 'Source', tools: [] }
+  return { engine: null, tools: [] }
+}
+function detectAntiCheat(s) {
+  const all = [...s.dirs, ...s.files]
+  if (all.some(n => /easyanticheat|eac[_-]|[_-]eac\b/.test(n))) return 'Easy Anti-Cheat'
+  if (all.some(n => /battleye|beservice/.test(n))) return 'BattlEye'
+  return null
+}
+function detectModLoader(s) {
+  if (s.dirs.has('bepinex')) return 'BepInEx'
+  if (s.dirs.has('ue4ss') || s.files.has('ue4ss.dll')) return 'UE4SS'
+  if (s.files.has('skse64_loader.exe')) return 'SKSE64'
+  if (s.files.has('f4se_loader.exe')) return 'F4SE'
+  if (s.files.has('winhttp.dll') || s.files.has('dsound.dll') || s.files.has('dinput8.dll')) return 'a mod loader'
+  return null
+}
+ipcMain.handle('check-moddability', async (e, game) => {
+  const gamePath = game && game.gamePath
+  if (!gamePath || !fs.existsSync(gamePath)) {
+    return { status: 'unknown', icon: '❓', label: "Can't check", engine: null, tools: [], toolNames: [], warnings: ['Game folder not found on disk.'], summary: "Couldn't find the game's folder to scan." }
+  }
+  const s = collectSignals(gamePath)
+  const eng = classifyEngine(s)
+  const ac = detectAntiCheat(s)
+  const loader = detectModLoader(s)
+  const locked = /\\windowsapps\\/i.test(gamePath)
+  const known = (game && (KNOWN_BY_APPID[String(game.appId)] || KNOWN_BY_NORM[norm(game.name)])) || null
+  const engine = eng.engine || (known ? 'Recognised game' : null)
+  const tools = eng.tools
+  const warnings = []
+  if (ac) warnings.push(ac + ' detected — mod single-player only; modding online games can get you banned.')
+  if (loader) warnings.push(loader + ' is already installed in this folder.')
+  let status, icon, label, summary
+  if (locked) { status = 'permission'; icon = '🔒'; label = 'Needs permission'; summary = 'Protected Xbox folder — grant access first (ModMaster can do this), then it’s moddable.' }
+  else if (ac) { status = 'caution'; icon = '⚠️'; label = 'Moddable with care'; summary = (engine ? engine + ' game. ' : '') + ac + ' is present — keep mods to single-player.' }
+  else if (engine && tools.length) { status = 'moddable'; icon = '✅'; label = 'Moddable'; summary = engine + ' — install ' + tools.map(toolName).join(' + ') + ' and you’re set.' }
+  else if (engine || known) { status = 'moddable'; icon = '✅'; label = 'Moddable'; summary = (engine || 'Recognised game') + ' — mod-ready.' }
+  else { status = 'unknown'; icon = '❓'; label = 'Unknown'; summary = 'Couldn’t detect the engine — it may still be moddable manually.' }
+  return { status, icon, label, engine, tools, toolNames: tools.map(toolName), warnings, modLoaderPresent: loader || null, modFolder: (game && game.modPath) || null, summary }
+})
+
 // ── Self-updater ─────────────────────────────────────────────────────────────
 ipcMain.handle('update-and-restart', async (e, {repoUrl}) => {
   try {

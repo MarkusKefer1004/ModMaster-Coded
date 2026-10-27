@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('MM', {
   openExternal:(url)  => ipcRenderer.invoke('open-external', url),
   scanFolder:   (p)   => ipcRenderer.invoke('scan-folder', p),
   detectGames:     () => ipcRenderer.invoke('detect-games'),
+  checkModdability:(game) => ipcRenderer.invoke('check-moddability', game),
   listDrives:      () => ipcRenderer.invoke('list-drives'),
   scanLocation:(opts) => ipcRenderer.invoke('scan-location', opts),
   getCustomGames:  () => ipcRenderer.invoke('get-custom-games'),
