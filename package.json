@@ -18,11 +18,12 @@
     "appId": "com.modmaster.app",
     "productName": "ModMaster",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "app": "app"
     },
     "files": [
-      "app/**/*",
-      "!app/renderer/_preview-server.js"
+      "**/*",
+      "!**/_preview-server.js"
     ],
     "win": {
       "target": [
